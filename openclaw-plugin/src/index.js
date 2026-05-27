@@ -334,6 +334,17 @@ export default definePluginEntry({
   configSchema,
   register(api) {
     api.registerTool((ctx) => createTool(ctx), { names: ["zeroinbox_run"] });
+    api.registerCommand({
+      name: "zeroinbox",
+      description: "Run ZEROINBOX mail sorting or status commands.",
+      acceptsArgs: true,
+      requireAuth: true,
+      handler: async (ctx) => {
+        const raw = readString(ctx?.args) ?? "";
+        const payload = await runZeroinbox(api, { raw });
+        return { text: payload.text ?? "ZEROINBOX done." };
+      },
+    });
     registerWebhook(api);
   },
 });
