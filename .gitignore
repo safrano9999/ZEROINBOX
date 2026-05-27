@@ -7,11 +7,3 @@ __pycache__/
 logs/
 state/
 REPORTS/
-dist/
-openclaw-plugin/.env
-openclaw-plugin/.gmail-oauth-client.json
-openclaw-plugin/.gmail-token*.json
-openclaw-plugin/.venv/
-openclaw-plugin/node_modules/
-openclaw-plugin/logs/
-openclaw-plugin/REPORTS/

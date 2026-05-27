@@ -13,8 +13,7 @@ permissions:
   contents: write
 
 env:
-  PLUGIN_DIR: openclaw-plugin
-  ZIP_NAME: zeroinbox-openclaw-plugin.zip
+  ZIP_NAME: zeroinbox-latest.zip
 
 jobs:
   build:
@@ -35,28 +34,21 @@ jobs:
           python-version: "3.13"
 
       - name: Check plugin sources
-        run: bash "$PLUGIN_DIR/scripts/check.sh"
+        run: bash scripts/check.sh
 
       - name: Build plugin archive
         run: |
           set -euo pipefail
-          mkdir -p dist
-          rm -f "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256"
-          (
-            cd "$PLUGIN_DIR"
-            zip -qr "../dist/$ZIP_NAME" . \
-              -x ".env" ".env.*" ".calenv" ".gmail-oauth-client.json" ".gmail-token*.json" \
-              -x "*.sqlite3" "*.pyc" "*/__pycache__/*" \
-              -x ".venv/*" ".venv/**" "*/.venv/*" "*/.venv/**" \
-              -x "node_modules/*" "node_modules/**" "*/node_modules/*" "*/node_modules/**" \
-              -x "logs/*" "logs/**" "LOGS/*" "LOGS/**" "state/*" "state/**" "REPORTS/*" "REPORTS/**"
-          )
-          (cd dist && sha256sum "$ZIP_NAME" > "$ZIP_NAME.sha256")
+          rm -f "$ZIP_NAME" "$ZIP_NAME.sha256"
+          zip -qr "$ZIP_NAME" \
+            README.md config.json openclaw.plugin.json package.json requirements.txt \
+            src scripts skills zeroinbox
+          sha256sum "$ZIP_NAME" > "$ZIP_NAME.sha256"
 
       - name: Inspect archive
         run: |
           set -euo pipefail
-          zipinfo -1 "dist/$ZIP_NAME" | tee /tmp/archive-files.txt
+          zipinfo -1 "$ZIP_NAME" | tee /tmp/archive-files.txt
           if grep -E '(^|/)(\.env|\.calenv|\.gmail-oauth-client\.json|\.gmail-token.*\.json|\.venv|node_modules|__pycache__|logs|LOGS|state|REPORTS)(/|$)|(\.pyc|\.sqlite3)$' /tmp/archive-files.txt; then
             echo "Refusing to publish archive with generated state, secrets, cache, or database files." >&2
             exit 1
@@ -65,10 +57,10 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: zeroinbox-openclaw-plugin
+          name: zeroinbox-latest
           path: |
-            dist/${{ env.ZIP_NAME }}
-            dist/${{ env.ZIP_NAME }}.sha256
+            ${{ env.ZIP_NAME }}
+            ${{ env.ZIP_NAME }}.sha256
 
       - name: Publish GitHub release asset
         if: startsWith(github.ref, 'refs/tags/')
@@ -78,9 +70,9 @@ jobs:
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" --clobber
+            gh release upload "$tag" "$ZIP_NAME" "$ZIP_NAME.sha256" --clobber
           else
-            gh release create "$tag" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" \
+            gh release create "$tag" "$ZIP_NAME" "$ZIP_NAME.sha256" \
               --title "$tag" \
               --notes "OpenClaw plugin archive for ZEROINBOX."
           fi
@@ -94,14 +86,11 @@ jobs:
           latest_tag="latest"
           notes="Latest OpenClaw plugin archive for ZEROINBOX. Current source tag: ${GITHUB_REF_NAME}."
           if gh release view "$latest_tag" >/dev/null 2>&1; then
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/${latest_tag}" \
-              -f sha="$GITHUB_SHA" -F force=true >/dev/null 2>&1 || true
-            gh release upload "$latest_tag" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" --clobber
+            gh release upload "$latest_tag" "$ZIP_NAME" "$ZIP_NAME.sha256" --clobber
             gh release edit "$latest_tag" --title "$latest_tag" --notes "$notes"
           else
-            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${latest_tag}" >/dev/null 2>&1 || true
             for attempt in 1 2 3; do
-              if gh release create "$latest_tag" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" \
+              if gh release create "$latest_tag" "$ZIP_NAME" "$ZIP_NAME.sha256" \
                 --target "$GITHUB_SHA" \
                 --title "$latest_tag" \
                 --notes "$notes"; then

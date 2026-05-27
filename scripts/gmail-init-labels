@@ -193,7 +193,7 @@ def load_gmail_api_modules():
         raise SystemExit(
             f"Missing dependency: {exc}\n"
             "Install:\n"
-            "  openclaw-plugin/scripts/setup-python.sh"
+            "  scripts/setup-python.sh"
         )
     return Request, Credentials, InstalledAppFlow, build, HttpError
 

@@ -2,9 +2,9 @@
 
 OpenClaw-ready IMAP mail sorter with LiteLLM classification and PDF reports.
 
-Runtime code lives in `openclaw-plugin/`. The OpenClaw plugin starts the Python
-CLI directly; OpenClaw does not classify mails and does not touch the LiteLLM
-decision logic.
+Runtime code lives in the repository root. The OpenClaw plugin starts the
+Python CLI directly; OpenClaw does not classify mails and does not touch the
+LiteLLM decision logic.
 
 ## What It Does
 
@@ -52,13 +52,13 @@ On this host the OpenClaw cron jobs run it at `10:00` and `20:00`
 Main config:
 
 ```text
-openclaw-plugin/config.json
+config.json
 ```
 
 Credentials belong in an ignored dotenv file next to that config, usually:
 
 ```text
-openclaw-plugin/.env
+.env
 ```
 
 Required Gmail IMAP values:
@@ -83,7 +83,7 @@ Create the configured target labels before the first committed sort:
 
 ```bash
 cd /home/openclaw/safcontainer/ZEROINBOX
-openclaw-plugin/scripts/gmail-init-labels
+scripts/gmail-init-labels
 ```
 
 Default label creation uses Gmail IMAP and the app password. Google Cloud OAuth
@@ -93,41 +93,41 @@ JSON is only needed if `ZEROINBOX_LABEL_METHOD=gmail-api` is set.
 
 ```bash
 cd /home/openclaw/safcontainer/ZEROINBOX
-openclaw-plugin/scripts/check.sh
+scripts/check.sh
 ```
 
 Direct CLI run for debugging:
 
 ```bash
-openclaw-plugin/scripts/setup-python.sh
-openclaw-plugin/.venv/bin/python -m zeroinbox.cli \
-  --config openclaw-plugin/config.json \
+scripts/setup-python.sh
+.venv/bin/python -m zeroinbox.cli \
+  --config config.json \
   sort --dry-run --limit 10
 ```
 
 ## Install From Checkout
 
 ```bash
-openclaw plugins install --link /home/openclaw/safcontainer/ZEROINBOX/openclaw-plugin \
+openclaw plugins install --link /home/openclaw/safcontainer/ZEROINBOX \
   --dangerously-force-unsafe-install
 openclaw gateway restart
 ```
 
 ## Release Zip
 
-GitHub Actions builds the installable zip from `openclaw-plugin/` when a manual
-date tag is pushed. Use the `YYYY.M.D` convention without leading zeroes, for
-example `2026.5.27`. The same build also overwrites the moving `latest`
-release.
+GitHub Actions builds the installable zip from the repository root when a
+manual date tag is pushed. Use the `YYYY.M.D` convention without leading
+zeroes, for example `2026.5.27`. The same build also overwrites the moving
+`latest` release.
 
 Download example:
 
 ```bash
 gh release download 2026.5.27 \
   --repo safrano9999/ZEROINBOX \
-  --pattern 'zeroinbox-openclaw-plugin.zip'
+  --pattern 'zeroinbox-latest.zip'
 
 gh release download latest \
   --repo safrano9999/ZEROINBOX \
-  --pattern 'zeroinbox-openclaw-plugin.zip'
+  --pattern 'zeroinbox-latest.zip'
 ```
