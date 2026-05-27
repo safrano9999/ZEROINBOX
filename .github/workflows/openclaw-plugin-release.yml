@@ -93,9 +93,14 @@ jobs:
           set -euo pipefail
           latest_tag="latest"
           notes="Latest OpenClaw plugin archive for ZEROINBOX. Current source tag: ${GITHUB_REF_NAME}."
-          git tag -f "$latest_tag" "$GITHUB_SHA"
           for attempt in 1 2 3; do
-            if git push origin "refs/tags/$latest_tag" --force; then
+            if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${latest_tag}" >/dev/null 2>&1; then
+              if gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/${latest_tag}" \
+                -f sha="$GITHUB_SHA" -F force=true >/dev/null; then
+                break
+              fi
+            elif gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${latest_tag}" -f sha="$GITHUB_SHA" >/dev/null; then
               break
             fi
             if [ "$attempt" -eq 3 ]; then
