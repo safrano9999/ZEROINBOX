@@ -93,14 +93,13 @@ jobs:
           set -euo pipefail
           latest_tag="latest"
           notes="Latest OpenClaw plugin archive for ZEROINBOX. Current source tag: ${GITHUB_REF_NAME}."
+          gh release delete "$latest_tag" --yes --cleanup-tag >/dev/null 2>&1 || true
+          gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${latest_tag}" >/dev/null 2>&1 || true
           for attempt in 1 2 3; do
-            if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${latest_tag}" >/dev/null 2>&1; then
-              if gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/${latest_tag}" \
-                -f sha="$GITHUB_SHA" -F force=true >/dev/null; then
-                break
-              fi
-            elif gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-              -f ref="refs/tags/${latest_tag}" -f sha="$GITHUB_SHA" >/dev/null; then
+            if gh release create "$latest_tag" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" \
+              --target "$GITHUB_SHA" \
+              --title "$latest_tag" \
+              --notes "$notes"; then
               break
             fi
             if [ "$attempt" -eq 3 ]; then
@@ -108,12 +107,3 @@ jobs:
             fi
             sleep $((attempt * 5))
           done
-          if gh release view "$latest_tag" >/dev/null 2>&1; then
-            gh release upload "$latest_tag" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" --clobber
-            gh release edit "$latest_tag" --title "$latest_tag" --notes "$notes"
-          else
-            gh release create "$latest_tag" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" \
-              --target "$GITHUB_SHA" \
-              --title "$latest_tag" \
-              --notes "$notes"
-          fi
