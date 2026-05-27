@@ -1,0 +1,62 @@
+{
+  "id": "zeroinbox",
+  "name": "ZEROINBOX",
+  "description": "Standalone IMAP and LiteLLM mail sorter with a /zeroinbox command.",
+  "skills": [
+    "skills"
+  ],
+  "contracts": {
+    "tools": [
+      "zeroinbox_run"
+    ]
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "configPath": {
+        "type": "string",
+        "description": "Optional path to ZEROINBOX config.json."
+      },
+      "pythonPath": {
+        "type": "string",
+        "description": "Optional Python interpreter path."
+      },
+      "envFile": {
+        "type": "string",
+        "description": "Optional dotenv file with IMAP and LLM credentials."
+      },
+      "autoSetupPython": {
+        "type": "boolean",
+        "default": true,
+        "description": "Create a plugin .venv and install requirements on first use."
+      },
+      "defaultArgs": {
+        "type": "string",
+        "default": "sort --commit --limit 10",
+        "description": "Arguments used when /zeroinbox is called without text."
+      },
+      "webhook": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "path": {
+            "type": "string",
+            "default": "/plugins/zeroinbox/run"
+          },
+          "args": {
+            "type": "string",
+            "default": "sort --commit --limit 10"
+          }
+        }
+      }
+    }
+  }
+}

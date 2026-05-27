@@ -1,0 +1,17 @@
+.env
+.gmail-oauth-client.json
+.gmail-token*.json
+.venv/
+__pycache__/
+*.pyc
+logs/
+state/
+REPORTS/
+dist/
+openclaw-plugin/.env
+openclaw-plugin/.gmail-oauth-client.json
+openclaw-plugin/.gmail-token*.json
+openclaw-plugin/.venv/
+openclaw-plugin/node_modules/
+openclaw-plugin/logs/
+openclaw-plugin/REPORTS/
