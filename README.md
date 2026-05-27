@@ -115,14 +115,13 @@ openclaw gateway restart
 
 ## Release Zip
 
-GitHub Actions builds the installable zip from `openclaw-plugin/` whenever an
-`openclaw-plugin-v*` tag is pushed. The moving release tag is
-`openclaw-plugin-latest`.
+GitHub Actions builds the installable zip from `openclaw-plugin/` whenever a
+date tag such as `2026.5.27` is pushed. The moving release tag is `latest`.
 
 Download example:
 
 ```bash
-gh release download openclaw-plugin-latest \
+gh release download latest \
   --repo safrano9999/ZEROINBOX \
   --pattern 'zeroinbox-openclaw-plugin.zip'
 ```
