@@ -111,29 +111,26 @@ scripts/setup-python.sh
   sort --dry-run --limit 10
 ```
 
-## Install From Checkout
+## Install
+
+Install or update to the latest CI build — one flow, always tracks `latest`:
+
+```bash
+gh release download latest --repo safrano9999/ZEROINBOX \
+  --pattern 'zeroinbox-latest.zip*' --clobber
+sha256sum -c zeroinbox-latest.zip.sha256
+openclaw plugins install ./zeroinbox-latest.zip --force --dangerously-force-unsafe-install
+openclaw gateway restart
+```
+
+The `latest` release always points at the newest CI build, so this never needs a
+version bump. The plugin creates `.venv` on first run unless `autoSetupPython`
+is disabled.
+
+Local dev (linked checkout, runs in place):
 
 ```bash
 openclaw plugins install --link /home/openclaw/safcontainer/ZEROINBOX \
   --dangerously-force-unsafe-install
 openclaw gateway restart
-```
-
-## Release Zip
-
-GitHub Actions builds the installable zip from the repository root when a
-manual date tag is pushed. Use the `YYYY.M.D` convention without leading
-zeroes, for example `2026.5.27`. The same build also overwrites the moving
-`latest` release.
-
-Download example:
-
-```bash
-gh release download 2026.5.27 \
-  --repo safrano9999/ZEROINBOX \
-  --pattern 'zeroinbox-latest.zip'
-
-gh release download latest \
-  --repo safrano9999/ZEROINBOX \
-  --pattern 'zeroinbox-latest.zip'
 ```
