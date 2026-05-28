@@ -1,5 +1,11 @@
 # ZEROINBOX
 
+[![OpenClaw plugin](https://github.com/safrano9999/ZEROINBOX/actions/workflows/openclaw-plugin-release.yml/badge.svg)](https://github.com/safrano9999/ZEROINBOX/actions/workflows/openclaw-plugin-release.yml)
+
+**Download (always the latest CI build):**
+[`zeroinbox-latest.zip`](https://github.com/safrano9999/ZEROINBOX/releases/download/latest/zeroinbox-latest.zip)
+· [`.sha256`](https://github.com/safrano9999/ZEROINBOX/releases/download/latest/zeroinbox-latest.zip.sha256)
+
 OpenClaw-ready IMAP mail sorter with LiteLLM classification and PDF reports.
 
 Runtime code lives in the repository root. The OpenClaw plugin starts the

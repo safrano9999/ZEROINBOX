@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
-const pluginRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+const pluginRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)));
 const pluginConfigPath = path.join(pluginRoot, "config.json");
 const requirementsPath = path.join(pluginRoot, "requirements.txt");
 const venvDir = path.join(pluginRoot, ".venv");

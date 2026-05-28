@@ -42,7 +42,7 @@ jobs:
           rm -f "$ZIP_NAME" "$ZIP_NAME.sha256"
           zip -qr "$ZIP_NAME" \
             README.md config.json openclaw.plugin.json package.json requirements.txt \
-            src scripts skills zeroinbox
+            index.js scripts skills zeroinbox
           sha256sum "$ZIP_NAME" > "$ZIP_NAME.sha256"
 
       - name: Inspect archive

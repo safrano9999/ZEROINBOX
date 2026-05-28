@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
-node --check "$PLUGIN_ROOT/src/index.js"
+node --check "$PLUGIN_ROOT/index.js"
 PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/zeroinbox-pycache" python3 -m py_compile \
   "$PLUGIN_ROOT/zeroinbox/__init__.py" \
   "$PLUGIN_ROOT/zeroinbox/classifier.py" \
