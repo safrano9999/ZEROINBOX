@@ -127,10 +127,12 @@ The `latest` release always points at the newest CI build, so this never needs a
 version bump. The plugin creates `.venv` on first run unless `autoSetupPython`
 is disabled.
 
-Local dev (linked checkout, runs in place):
+Local dev (clone + link, runs in place):
 
 ```bash
-openclaw plugins install --link /home/openclaw/safcontainer/ZEROINBOX \
+git clone https://github.com/safrano9999/ZEROINBOX.git
+cd ZEROINBOX
+openclaw plugins install --link "$(pwd)" \
   --dangerously-force-unsafe-install
 openclaw gateway restart
 ```
