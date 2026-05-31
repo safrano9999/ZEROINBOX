@@ -53,11 +53,40 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def render_sort(payload: dict[str, Any]) -> str:
+    mailboxes = payload.get("mailboxes") if isinstance(payload.get("mailboxes"), list) else []
+    if mailboxes:
+        empty = [item for item in mailboxes if int(item.get("seen") or 0) == 0]
+        active = [item for item in mailboxes if int(item.get("seen") or 0) > 0]
+        if payload["seen"] == 0:
+            lines = ["✅ ZEROINBOX: no new mails, nothing to do."]
+            lines.extend(f"✅ {item.get('target')}: no new mails, nothing to do." for item in empty)
+            return "\n".join(lines)
+        mode = "dry-run" if payload["dryRun"] else "commit"
+        lines = [
+            f"ZEROINBOX: {payload['seen']} Mails verarbeitet ({mode}), {payload['moved']} verschoben.",
+        ]
+        lines.extend(
+            f"- {item.get('target')}: {item.get('seen')} Mails, {item.get('moved')} verschoben"
+            for item in active
+        )
+        lines.extend(f"✅ {item.get('target')}: no new mails, nothing to do." for item in empty)
+        for item in payload["results"][:10]:
+            lines.append(
+                f"- {item['destination']} -> {item['subject'][:90]} ({item['action']}, {item['confidence']:.2f})"
+            )
+        if payload.get("logPath"):
+            lines.append(f"Log: {payload['logPath']}")
+        if payload.get("reportPath"):
+            lines.append(f"PDF: {payload['reportPath']}")
+            lines.append(f"MEDIA:{payload['reportPath']}")
+        return "\n".join(lines)
+    mailbox = payload.get("mailbox") or "INBOX"
+    target = f"{payload['account']} / {mailbox}"
     if payload["seen"] == 0:
-        return f"ZEROINBOX {payload['account']}: keine passenden Mails gefunden."
+        return f"✅ ZEROINBOX {target}: no new mails, nothing to do."
     mode = "dry-run" if payload["dryRun"] else "commit"
     lines = [
-        f"ZEROINBOX {payload['account']}: {payload['seen']} Mails verarbeitet ({mode}), {payload['moved']} verschoben.",
+        f"ZEROINBOX {target}: {payload['seen']} Mails verarbeitet ({mode}), {payload['moved']} verschoben.",
     ]
     for item in payload["results"][:10]:
         lines.append(

@@ -56,6 +56,54 @@ def account_config(config: dict[str, Any], account: str | None = None) -> dict[s
     return selected
 
 
+def account_names(config: dict[str, Any], account: str | None = None) -> list[str]:
+    if account:
+        account_config(config, account)
+        return [account]
+    accounts = config.get("accounts")
+    if not isinstance(accounts, dict):
+        return []
+    names = list(accounts)
+    default = str(config.get("defaultAccount") or "").strip()
+    if default in names:
+        names.remove(default)
+        names.insert(0, default)
+    return names
+
+
+def mailbox_accounts(config: dict[str, Any], account: str | None = None) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for name in account_names(config, account):
+        base = account_config(config, name)
+        entries = base.get("mailboxes") or base.get("inboxes")
+        if not isinstance(entries, list) or not entries:
+            item = dict(base)
+            item.pop("mailboxes", None)
+            item.pop("inboxes", None)
+            item["mailboxLabel"] = str(item.get("inbox") or "INBOX")
+            result.append(item)
+            continue
+        for entry in entries:
+            item = dict(base)
+            item.pop("mailboxes", None)
+            item.pop("inboxes", None)
+            if isinstance(entry, dict):
+                inbox = str(entry.get("inbox") or entry.get("mailbox") or entry.get("name") or "").strip()
+                if not inbox:
+                    continue
+                item["inbox"] = inbox
+                item["search"] = str(entry.get("search") or item.get("search") or "UNSEEN")
+                item["mailboxLabel"] = str(entry.get("label") or entry.get("name") or inbox)
+            else:
+                inbox = str(entry or "").strip()
+                if not inbox:
+                    continue
+                item["inbox"] = inbox
+                item["mailboxLabel"] = inbox
+            result.append(item)
+    return result
+
+
 def resolve_secret(account: dict[str, Any], key: str) -> str:
     direct = account.get(key)
     if isinstance(direct, str) and direct:

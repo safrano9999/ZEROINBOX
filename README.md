@@ -15,6 +15,7 @@ LiteLLM decision logic.
 ## What It Does
 
 - reads IMAP mail from the configured account
+- checks all configured accounts/mailboxes in the normal sort flow
 - classifies matching messages with `litellm.completion(...)`
 - moves messages into configured folders when run with `--commit`
 - writes JSONL decisions to `logs/`
@@ -49,6 +50,10 @@ sort --commit --limit 10
 
 Sort responses include `MEDIA:<pdf path>` when a PDF was generated, so Telegram
 receives the report through OpenClaw.
+When all checked mailboxes are empty, the response lists every mailbox with a
+green check and no PDF is generated. If only some mailboxes have work, the empty
+ones are still listed in the text response and only processed mails appear in
+the PDF.
 
 On this host the OpenClaw cron jobs run it at `10:00` and `20:00`
 (`Europe/Vienna`).
@@ -82,6 +87,26 @@ LITELLM_URL=https://forky.tailb13f39.ts.net
 LITELLM_PORT=888
 ZEROINBOX_MODEL=gemini/gemini-flash-lite-latest
 ```
+
+Multiple source mailboxes can be configured per account:
+
+```json
+{
+  "accounts": {
+    "gmail": {
+      "inbox": "INBOX",
+      "search": "UNSEEN",
+      "mailboxes": [
+        "INBOX",
+        { "label": "Updates", "inbox": "INBOX/Updates", "search": "UNSEEN" }
+      ]
+    }
+  }
+}
+```
+
+Without `--account`, `sort` checks every configured account and every listed
+mailbox. With `--account gmail`, it checks all mailboxes for that account.
 
 ## Gmail Labels
 

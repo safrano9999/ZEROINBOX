@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .classifier import classify, destination_map, ensure_classifier_ready
-from .config import account_config, log_dir
+from .config import account_config, log_dir, mailbox_accounts
 from .imap_backend import ImapAccount
 from .models import MailSummary, SortResult
 from .report import write_pdf_report
@@ -57,17 +57,27 @@ def list_folders(config: dict[str, Any], account_name: str | None = None) -> dic
     return {"account": account["name"], "folders": folders}
 
 
-def sort_mail(config: dict[str, Any], account_name: str | None, limit: int, dry_run: bool, classifier: str | None) -> dict[str, Any]:
-    account = account_config(config, account_name)
-    ensure_classifier_ready(config, classifier)
+def mailbox_label(account: dict[str, Any]) -> str:
+    return f"{account['name']} / {account.get('mailboxLabel') or account.get('inbox') or 'INBOX'}"
+
+
+def sort_one_mailbox(
+    config: dict[str, Any],
+    account: dict[str, Any],
+    limit: int,
+    dry_run: bool,
+    classifier: str | None,
+    run_id: str,
+) -> dict[str, Any]:
     destinations = destination_map(account)
-    run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     records: list[dict[str, Any]] = []
     results: list[SortResult] = []
     moved = 0
 
     with ImapAccount(account) as imap:
         uids = imap.search_uids(limit=limit)
+        if uids:
+            ensure_classifier_ready(config, classifier)
         for uid in uids:
             mail = imap.fetch_message(uid)
             decision = classify(config, account, mail, classifier)
@@ -90,23 +100,59 @@ def sort_mail(config: dict[str, Any], account_name: str | None, limit: int, dry_
                 action=action,
             )
             results.append(result)
-            records.append(result.__dict__)
+            record = dict(result.__dict__)
+            record["sourceAccount"] = account["name"]
+            record["sourceMailbox"] = str(account.get("inbox") or "INBOX")
+            records.append(record)
         if moved:
             imap.expunge()
+
+    return {
+        "account": account["name"],
+        "mailbox": str(account.get("inbox") or "INBOX"),
+        "mailboxLabel": str(account.get("mailboxLabel") or account.get("inbox") or "INBOX"),
+        "target": mailbox_label(account),
+        "search": str(account.get("search") or "UNSEEN"),
+        "seen": len(results),
+        "moved": moved,
+        "records": records,
+        "results": [item.__dict__ for item in results],
+        "_sortResults": results,
+    }
+
+
+def sort_mail(config: dict[str, Any], account_name: str | None, limit: int, dry_run: bool, classifier: str | None) -> dict[str, Any]:
+    accounts = mailbox_accounts(config, account_name)
+    if not accounts:
+        raise ValueError("No ZEROINBOX accounts configured.")
+    run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
+    mailbox_payloads = [sort_one_mailbox(config, account, limit, dry_run, classifier, run_id) for account in accounts]
+    records = [record for payload in mailbox_payloads for record in payload["records"]]
+    sort_results = [result for payload in mailbox_payloads for result in payload["_sortResults"]]
+    moved = sum(int(payload["moved"]) for payload in mailbox_payloads)
 
     log_path = log_dir(config) / f"zeroinbox-{run_id}.jsonl"
     if records:
         write_jsonl(log_path, records)
     report_path = ""
-    if results:
-        report_path = str(write_pdf_report(config, run_id, account["name"], dry_run, moved, results))
+    if sort_results:
+        active_sources = ", ".join(payload["target"] for payload in mailbox_payloads if payload["seen"])
+        report_path = str(write_pdf_report(config, run_id, active_sources, dry_run, moved, sort_results))
+    visible_payloads = [
+        {key: value for key, value in payload.items() if key not in {"records", "_sortResults"}}
+        for payload in mailbox_payloads
+    ]
+    first = visible_payloads[0]
     return {
         "runId": run_id,
-        "account": account["name"],
+        "account": first["account"],
+        "mailbox": first["mailbox"],
+        "search": first["search"],
         "dryRun": dry_run,
-        "seen": len(results),
+        "seen": len(sort_results),
         "moved": moved,
         "logPath": str(log_path) if records else "",
         "reportPath": report_path,
-        "results": [item.__dict__ for item in results],
+        "results": [record for payload in visible_payloads for record in payload["results"]],
+        "mailboxes": visible_payloads,
     }
