@@ -58,9 +58,7 @@ def render_sort(payload: dict[str, Any]) -> str:
         empty = [item for item in mailboxes if int(item.get("seen") or 0) == 0]
         active = [item for item in mailboxes if int(item.get("seen") or 0) > 0]
         if payload["seen"] == 0:
-            lines = ["✅ ZEROINBOX: no new mails, nothing to do."]
-            lines.extend(f"✅ {item.get('target')}: no new mails, nothing to do." for item in empty)
-            return "\n".join(lines)
+            return "\n".join(f"✅ {item.get('target')}: no new mails, nothing to do." for item in empty)
         mode = "dry-run" if payload["dryRun"] else "commit"
         lines = [
             f"ZEROINBOX: {payload['seen']} Mails verarbeitet ({mode}), {payload['moved']} verschoben.",

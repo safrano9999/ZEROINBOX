@@ -50,10 +50,10 @@ sort --commit --limit 10
 
 Sort responses include `MEDIA:<pdf path>` when a PDF was generated, so Telegram
 receives the report through OpenClaw.
-When all checked mailboxes are empty, the response lists every mailbox with a
-green check and no PDF is generated. If only some mailboxes have work, the empty
-ones are still listed in the text response and only processed mails appear in
-the PDF.
+When all checked mailboxes are empty, the response contains one green-check
+line per mailbox and no PDF is generated. If only some mailboxes have work, the
+empty ones are still listed in the text response and only processed mails appear
+in the PDF.
 
 On this host the OpenClaw cron jobs run it at `10:00` and `20:00`
 (`Europe/Vienna`).
