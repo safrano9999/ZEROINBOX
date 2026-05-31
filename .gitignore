@@ -7,3 +7,5 @@ __pycache__/
 logs/
 state/
 REPORTS/
+config.sh
+python_header.py

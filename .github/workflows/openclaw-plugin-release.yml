@@ -43,6 +43,9 @@ jobs:
           zip -qr "$ZIP_NAME" \
             README.md config.json openclaw.plugin.json package.json requirements.txt \
             index.js scripts skills zeroinbox
+          for optional in env.example config.conf_example; do
+            [ -f "$optional" ] && zip -q "$ZIP_NAME" "$optional"
+          done
           sha256sum "$ZIP_NAME" > "$ZIP_NAME.sha256"
 
       - name: Inspect archive
