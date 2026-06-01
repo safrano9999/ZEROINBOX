@@ -14,4 +14,5 @@ PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/zeroinbox-pycache" python3 -m py_compile \
   "$PLUGIN_ROOT/zeroinbox/models.py" \
   "$PLUGIN_ROOT/zeroinbox/report.py" \
   "$PLUGIN_ROOT/zeroinbox/sorter.py" \
+  "$PLUGIN_ROOT/ZEROINBOX_init.sh" \
   "$PLUGIN_ROOT/scripts/gmail-init-labels"

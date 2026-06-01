@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
-"""Interactive ZEROINBOX account setup and IMAP folder bootstrap.
-
-Default behavior creates target folders over IMAP with the same app password
-used by ZEROINBOX. Google Cloud OAuth JSON is only needed when
-ZEROINBOX_LABEL_METHOD=gmail-api is set for Gmail accounts.
-"""
+"""Create ZEROINBOX destination folders/labels for configured accounts."""
 from __future__ import annotations
 
-import getpass
+import argparse
 import imaplib
 import os
 import re
@@ -22,21 +17,15 @@ GMAIL_DOMAINS = ("@gmail.com", "@googlemail.com")
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from zeroinbox.config import account_config, account_name, account_names, load_config, provider_names, resolve_secret  # noqa: E402
+from zeroinbox.config import account_config, account_names, load_config, resolve_secret  # noqa: E402
 
 
-CONFIG_PATH = ROOT_DIR / "config.conf"
-ENV_PATH = ROOT_DIR / ".env"
 OAUTH_CLIENT_PATH = ROOT_DIR / ".gmail-oauth-client.json"
 LEGACY_TOKEN_PATH = ROOT_DIR / ".gmail-token.json"
 
 
 def is_gmail(email: str) -> bool:
     return email.lower().endswith(GMAIL_DOMAINS)
-
-
-def provider_token(provider: str) -> str:
-    return re.sub(r"[^A-Za-z0-9]+", "_", provider.upper()).strip("_")
 
 
 def quote_mailbox(value: str) -> str:
@@ -47,190 +36,6 @@ def quote_mailbox(value: str) -> str:
 def token_path_for(email: str) -> Path:
     safe = re.sub(r"[^A-Za-z0-9_.@-]+", "_", email.strip().lower())
     return ROOT_DIR / f".gmail-token-{safe}.json"
-
-
-def ask(question: str, default: str = "") -> str:
-    suffix = f" [{default}]" if default else ""
-    value = input(f"{question}{suffix}: ").strip()
-    return value or default
-
-
-def ask_choice(question: str, options: tuple[str, ...], default: str = "") -> str:
-    pretty = "/".join(options)
-    while True:
-        value = ask(f"{question} ({pretty})", default).lower()
-        if value in options:
-            return value
-
-
-def read_kv(path: Path) -> dict[str, str]:
-    values: dict[str, str] = {}
-    if not path.exists():
-        return values
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        values[key.strip()] = value.strip().strip('"').strip("'")
-    return values
-
-
-def upsert_kv(path: Path, updates: dict[str, str], mode: int | None = None) -> None:
-    lines: list[str] = []
-    seen: set[str] = set()
-    if path.exists():
-        for raw in path.read_text(encoding="utf-8").splitlines():
-            stripped = raw.strip()
-            if not stripped or stripped.startswith("#") or "=" not in stripped:
-                lines.append(raw)
-                continue
-            key = stripped.split("=", 1)[0].strip()
-            if key in updates:
-                lines.append(f"{key}={updates[key]}")
-                seen.add(key)
-            else:
-                lines.append(raw)
-    for key, value in updates.items():
-        if key not in seen:
-            lines.append(f"{key}={value}")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    if mode is not None:
-        path.chmod(mode)
-
-
-def static_providers() -> set[str]:
-    return set(provider_names())
-
-
-def ask_provider(default_provider: str) -> str:
-    names = provider_names()
-    options = " ".join(f"({index}) {name}" for index, name in enumerate(names, start=1))
-    prompt = f"Provider key {options} or custom key, e.g. ms" if options else "Provider key"
-    raw = ask(prompt, default_provider or (names[0] if names else "gmail")).strip().lower()
-    if raw.isdigit():
-        selected = int(raw)
-        if 1 <= selected <= len(names):
-            return names[selected - 1]
-    return raw
-
-
-def suffix_for_index(index: int) -> str:
-    return "" if index == 1 else f"_{index}"
-
-
-def env_key(base: str, suffix: str) -> str:
-    return f"ZEROINBOX_{base}{suffix}"
-
-
-def config_provider_key(suffix: str) -> str:
-    return env_key("PROVIDER", suffix)
-
-
-def first_free_or_empty_slot(conf: dict[str, str], env: dict[str, str]) -> str:
-    for index in range(1, 51):
-        suffix = suffix_for_index(index)
-        has_provider = bool(conf.get(config_provider_key(suffix)))
-        has_email = bool(env.get(env_key("EMAIL", suffix)))
-        has_password = bool(env.get(env_key("APP_PASSWORD", suffix)) or env.get(env_key("PASSWORD", suffix)))
-        if has_provider and not (has_email and has_password):
-            return suffix
-        if not has_provider and not has_email and not has_password:
-            return suffix
-    raise SystemExit("No free ZEROINBOX account slot found.")
-
-
-def account_name_for(provider: str, suffix: str) -> str:
-    return account_name(provider.strip().lower(), suffix)
-
-
-def dynamic_provider_updates(conf: dict[str, str], provider: str) -> dict[str, str]:
-    if provider.lower() in static_providers():
-        return {}
-    token = provider_token(provider)
-    prefix = f"ZEROINBOX_PROVIDER_{token}"
-    if conf.get(f"{prefix}_URL") or conf.get(f"{prefix}_HOST"):
-        return {}
-
-    print(f"Custom provider '{provider}' needs IMAP connection values in config.conf.")
-    default_host = "outlook.office365.com" if provider.lower() in {"ms", "microsoft", "outlook"} else ""
-    host = ask("IMAP host or URL", default_host)
-    if not host:
-        raise SystemExit("IMAP host required for custom provider.")
-    return {
-        f"{prefix}_URL": host,
-        f"{prefix}_PORT": ask("IMAP port", "993"),
-        f"{prefix}_INBOX": ask("Inbox folder", "INBOX"),
-        f"{prefix}_SEARCH": ask("IMAP search", "UNSEEN"),
-        f"{prefix}_ARCHIVE_PREFIX": ask("Archive prefix", "ZEROINBOX/Archiv"),
-        f"{prefix}_CREATE_MISSING_FOLDERS": "true",
-        f"{prefix}_EXPUNGE_AFTER_MOVE": "true",
-    }
-
-
-def flow_new() -> list[tuple[str, str, dict[str, Any], list[dict[str, Any]], bool]]:
-    conf = read_kv(CONFIG_PATH)
-    env = read_kv(ENV_PATH)
-    suffix = first_free_or_empty_slot(conf, env)
-    default_provider = conf.get(config_provider_key(suffix)) or ("gmail" if suffix == "" else "")
-    provider = ask_provider(default_provider).strip().lower()
-    if provider == "custom":
-        provider = ask("Custom provider key, e.g. ms").strip().lower()
-    if not provider:
-        raise SystemExit("Provider required.")
-
-    config_updates = {config_provider_key(suffix): provider}
-    config_updates.update(dynamic_provider_updates(conf, provider))
-    if not conf.get("ZEROINBOX_ENV_FILE"):
-        config_updates["ZEROINBOX_ENV_FILE"] = ".env"
-    if not conf.get("ZEROINBOX_DEFAULT_ACCOUNT"):
-        config_updates["ZEROINBOX_DEFAULT_ACCOUNT"] = account_name_for(provider, suffix)
-
-    email = ask("Mail address")
-    if not email:
-        raise SystemExit("Mail address required.")
-    password = getpass.getpass("App password / IMAP password: ").strip().replace(" ", "")
-    if not password:
-        raise SystemExit("Password required.")
-
-    upsert_kv(CONFIG_PATH, config_updates)
-    upsert_kv(ENV_PATH, {env_key("EMAIL", suffix): email, env_key("APP_PASSWORD", suffix): password}, 0o600)
-
-    print(f"Wrote {config_provider_key(suffix)} to {CONFIG_PATH}.")
-    print(f"Wrote {env_key('EMAIL', suffix)} and {env_key('APP_PASSWORD', suffix)} to {ENV_PATH}.")
-    config = load_config(CONFIG_PATH)
-    account = account_config(config, account_name_for(provider, suffix))
-    return [(email, password, account, account.get("destinations") or [], True)]
-
-
-def configured_targets(selected: str) -> list[tuple[str, str, dict[str, Any], list[dict[str, Any]], bool]]:
-    config = load_config(CONFIG_PATH)
-    names = account_names(config)
-    if not names:
-        raise SystemExit("No accounts configured.")
-    chosen = names if selected == "all" else [selected]
-    result = []
-    for name in chosen:
-        account = account_config(config, name)
-        email = resolve_secret(account, "username").strip()
-        password = resolve_secret(account, "password").strip().replace(" ", "")
-        if not email:
-            raise SystemExit(f"{account.get('usernameEnv')} is empty in {ENV_PATH}.")
-        if not password:
-            raise SystemExit(f"{account.get('passwordEnv')} is empty in {ENV_PATH}.")
-        result.append((email, password, account, account.get("destinations") or [], False))
-    return result
-
-
-def flow_complete() -> list[tuple[str, str, dict[str, Any], list[dict[str, Any]], bool]]:
-    config = load_config(CONFIG_PATH)
-    names = account_names(config)
-    if not names:
-        raise SystemExit("No accounts configured.")
-    selected = ask("Account name or all", "all").strip().lower()
-    if selected != "all" and selected not in names:
-        raise SystemExit(f"Unknown account '{selected}'. Available: {', '.join(names)}")
-    return configured_targets(selected)
 
 
 def create_label_imap(conn: imaplib.IMAP4_SSL, name: str) -> tuple[str, str]:
@@ -318,8 +123,6 @@ def get_gmail_api_service(email: str, reset_token: bool):
 def create_labels_gmail_api(email: str, reset_token: bool, targets: list[tuple[str, str]]) -> int:
     _, _, _, _, HttpError = load_gmail_api_modules()
     print(f"\nAuthenticating to Gmail API as {email}...")
-    if reset_token:
-        print("(new account selected; OAuth consent required)")
     service = get_gmail_api_service(email, reset_token)
     result = service.users().labels().list(userId="me").execute()
     existing = {label["name"] for label in result.get("labels", [])}
@@ -358,14 +161,80 @@ def target_labels(destinations: list[dict[str, Any]]) -> list[tuple[str, str]]:
     return targets
 
 
-def main() -> int:
-    print("ZEROINBOX account/folder setup")
-    mode = ask_choice("Mode", ("new", "complete"), "complete")
-    selected = flow_new() if mode == "new" else flow_complete()
-    method = os.environ.get("ZEROINBOX_LABEL_METHOD", "imap").strip().lower()
+def read_kv(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not path.exists():
+        return values
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
 
+
+def has_configured_account(config_path: Path) -> bool:
+    config_values = read_kv(config_path)
+    env_file = config_values.get("ZEROINBOX_ENV_FILE") or os.environ.get("ZEROINBOX_ENV_FILE") or ".env"
+    env_path = Path(env_file)
+    if not env_path.is_absolute():
+        env_path = config_path.parent / env_path
+    values = dict(config_values)
+    values.update(read_kv(env_path))
+    values.update({key: value for key, value in os.environ.items() if key.startswith("ZEROINBOX_")})
+
+    for key, value in values.items():
+        if not value:
+            continue
+        if key in {"ZEROINBOX_GMAIL_USERNAME", "ZEROINBOX_GMAIL_APP_PASSWORD"}:
+            return True
+        if re.match(r"^ZEROINBOX_(PROVIDER|EMAIL|APP_PASSWORD|PASSWORD)(_[0-9]+)?$", key):
+            return True
+    return False
+
+
+def configured_targets(config_path: Path, selected: str) -> list[tuple[str, str, dict[str, Any], list[dict[str, Any]]]]:
+    if not has_configured_account(config_path):
+        return []
+    config = load_config(config_path)
+    names = account_names(config)
+    if not names:
+        return []
+    chosen = names if selected == "all" else [selected]
+    result = []
+    for name in chosen:
+        account = account_config(config, name)
+        email = resolve_secret(account, "username").strip()
+        password = resolve_secret(account, "password").strip().replace(" ", "")
+        if not email:
+            raise SystemExit(f"{account.get('usernameEnv')} is empty.")
+        if not password:
+            raise SystemExit(f"{account.get('passwordEnv')} is empty.")
+        result.append((email, password, account, account.get("destinations") or []))
+    return result
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Create ZEROINBOX folders/labels.")
+    parser.add_argument("--account", default="all", help="account name or all")
+    parser.add_argument("--config", default=os.environ.get("ZEROINBOX_CONFIG", "config.conf"))
+    parser.add_argument("--method", default=os.environ.get("ZEROINBOX_LABEL_METHOD", "imap"))
+    parser.add_argument("--reset-token", action="store_true")
+    args = parser.parse_args()
+
+    config_path = Path(args.config)
+    if not config_path.is_absolute():
+        config_path = ROOT_DIR / config_path
+
+    selected = configured_targets(config_path, args.account.strip().lower())
+    if not selected:
+        print("No ZEROINBOX accounts configured - label init skipped.")
+        return 0
+
+    method = args.method.strip().lower()
     failed = 0
-    for email, password, account, destinations, reset_token in selected:
+    for email, password, account, destinations in selected:
         targets = target_labels(destinations)
         if not targets:
             print(f"No destinations for {account.get('name')} - nothing to create.")
@@ -373,7 +242,7 @@ def main() -> int:
         if method == "gmail-api":
             if not is_gmail(email):
                 raise SystemExit(f"{email} is not a Gmail account; use ZEROINBOX_LABEL_METHOD=imap.")
-            failed += create_labels_gmail_api(email, reset_token, targets)
+            failed += create_labels_gmail_api(email, args.reset_token, targets)
         else:
             failed += create_labels_imap(email, password, account, targets)
 

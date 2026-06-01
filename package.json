@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "setup:python": "./scripts/setup-python.sh",
+    "accounts:init": "./ZEROINBOX_init.sh",
     "gmail:init-labels": "./scripts/gmail-init-labels",
     "check": "./scripts/check.sh"
   },

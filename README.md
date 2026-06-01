@@ -78,7 +78,15 @@ Credentials belong in an ignored dotenv file next to that config, usually:
 .env
 ```
 
-Single Gmail account:
+Accounts are added by the init script. It writes the provider block to
+`config.conf` and the credentials to `.env`; running it again appends the next
+slot (`_2`, `_3`, ...).
+
+```bash
+./ZEROINBOX_init.sh
+```
+
+Single Gmail account after init:
 
 ```env
 # config.conf
@@ -99,8 +107,8 @@ ZEROINBOX_MODEL=gemini/gemini-flash-lite-latest
 ```
 
 Known providers are read from `provider.conf`; currently `gmail` and `icloud`.
-Provider names are case-insensitive. A custom provider is selected in
-`config.conf` and configured with a matching provider block:
+Provider names are case-insensitive. A custom provider entered in
+`ZEROINBOX_init.sh` writes a matching provider block:
 
 ```env
 # config.conf
@@ -118,18 +126,18 @@ Without `--account`, `sort` checks every configured account. With
 
 ## Account Folders
 
-Create the configured target folders before the first committed sort, or add a
-new account interactively:
+Create the configured target folders before the first committed sort:
 
 ```bash
 cd /home/openclaw/safcontainer/ZEROINBOX
 scripts/gmail-init-labels
 ```
 
-The script reads provider choices from `provider.conf`, so the prompt accepts
-either the provider name or the shown number, for example `(1) gmail (2) icloud`.
 Default folder creation uses IMAP and the app password. Google Cloud OAuth JSON
 is only needed if `ZEROINBOX_LABEL_METHOD=gmail-api` is set for Gmail.
+
+In the `safrano9999-openclaw` container this label init is run once at container
+startup for all configured accounts.
 
 ## Local Check
 

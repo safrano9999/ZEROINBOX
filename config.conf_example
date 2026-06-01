@@ -1,34 +1,9 @@
-# config.conf_example - non-secret ZEROINBOX provider and runtime config.
-# Provider names are case-insensitive. Built-in providers are gmail and icloud.
-# Unknown providers use the dynamic ZEROINBOX_PROVIDER_<NAME>_* block below.
-
-# Main account provider. config.sh reads provider.conf and shows the built-in
-# options as "(1) gmail (2) icloud"; a custom key such as ms is also valid.
-# Credentials are ZEROINBOX_EMAIL and ZEROINBOX_APP_PASSWORD in .env.
-ZEROINBOX_PROVIDER=gmail
+# config.conf_example - non-secret ZEROINBOX runtime config.
+# Account/provider blocks are written by ZEROINBOX_init.sh before config.sh.
 
 # Runtime defaults.
 ZEROINBOX_ENV_FILE=.env
-ZEROINBOX_DEFAULT_ACCOUNT=gmail
 ZEROINBOX_DEFAULT_DRY_RUN=true
 ZEROINBOX_CLASSIFIER=litellm
 ZEROINBOX_LOG_DIR=logs
 ZEROINBOX_REPORT_DIR=REPORTS
-
-# Optional second account. Uncomment this provider and the matching
-# ZEROINBOX_EMAIL_2 / ZEROINBOX_APP_PASSWORD_2 pair in .env.
-# ZEROINBOX_PROVIDER_2=icloud
-
-# Optional third account with a custom provider. "ms" is just the provider key;
-# the IMAP host/port are read from the matching ZEROINBOX_PROVIDER_MS_* values.
-# ZEROINBOX_PROVIDER_3=ms
-
-# Microsoft / Outlook / Microsoft 365 IMAP example for the custom provider above.
-# Adjust this if your tenant blocks IMAP or requires another host.
-# ZEROINBOX_PROVIDER_MS_URL=outlook.office365.com
-# ZEROINBOX_PROVIDER_MS_PORT=993
-# ZEROINBOX_PROVIDER_MS_INBOX=INBOX
-# ZEROINBOX_PROVIDER_MS_SEARCH=UNSEEN
-# ZEROINBOX_PROVIDER_MS_ARCHIVE_PREFIX=ZEROINBOX/Archiv
-# ZEROINBOX_PROVIDER_MS_CREATE_MISSING_FOLDERS=true
-# ZEROINBOX_PROVIDER_MS_EXPUNGE_AFTER_MOVE=true
