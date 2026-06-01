@@ -19,7 +19,7 @@
     "properties": {
       "configPath": {
         "type": "string",
-        "description": "Optional path to ZEROINBOX config.json."
+        "description": "Optional path to ZEROINBOX config.conf."
       },
       "pythonPath": {
         "type": "string",

@@ -1,4 +1,5 @@
 .env
+config.conf
 .gmail-oauth-client.json
 .gmail-token*.json
 .venv/

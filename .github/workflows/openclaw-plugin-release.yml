@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           rm -f "$ZIP_NAME" "$ZIP_NAME.sha256"
           zip -qr "$ZIP_NAME" \
-            README.md config.json openclaw.plugin.json package.json requirements.txt \
+            README.md provider.conf openclaw.plugin.json package.json requirements.txt \
             index.js scripts skills zeroinbox
           for optional in env.example config.conf_example; do
             [ -f "$optional" ] && zip -q "$ZIP_NAME" "$optional"

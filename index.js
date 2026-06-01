@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 const pluginRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)));
-const pluginConfigPath = path.join(pluginRoot, "config.json");
+const pluginConfigPath = path.join(pluginRoot, "config.conf");
 const requirementsPath = path.join(pluginRoot, "requirements.txt");
 const venvDir = path.join(pluginRoot, ".venv");
 const venvPython = path.join(venvDir, "bin", "python");
@@ -18,7 +18,7 @@ const configSchema = {
   properties: {
     configPath: {
       type: "string",
-      description: "Optional path to ZEROINBOX config.json.",
+      description: "Optional path to ZEROINBOX config.conf.",
     },
     pythonPath: {
       type: "string",
@@ -152,11 +152,48 @@ function readJson(filePath) {
   }
 }
 
+function readKeyValues(filePath) {
+  let content;
+  try {
+    content = fs.readFileSync(filePath, "utf8");
+  } catch {
+    return {};
+  }
+  const loaded = {};
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    const equals = trimmed.indexOf("=");
+    if (equals <= 0) {
+      continue;
+    }
+    const name = trimmed.slice(0, equals).trim();
+    let value = trimmed.slice(equals + 1).trim();
+    if (
+      value.length >= 2
+      && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+    loaded[name] = value;
+  }
+  return loaded;
+}
+
+function readConfigValues(filePath) {
+  return filePath.endsWith(".json") ? readJson(filePath) : readKeyValues(filePath);
+}
+
 function resolveEnv(ctx) {
   const cfg = readPluginConfig(ctx);
   const configPath = resolveConfigPath(ctx);
-  const fileConfig = readJson(configPath);
-  const envFile = readString(cfg.envFile) ?? readString(fileConfig.envFile);
+  const fileConfig = readConfigValues(configPath);
+  const envFile = readString(cfg.envFile)
+    ?? readString(fileConfig.envFile)
+    ?? readString(fileConfig.ZEROINBOX_ENV_FILE)
+    ?? ".env";
   if (!envFile) {
     return {};
   }

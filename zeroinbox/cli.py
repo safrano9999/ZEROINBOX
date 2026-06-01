@@ -13,7 +13,7 @@ from .sorter import classify_sample, list_folders, sort_mail, status
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="ZEROINBOX standalone mail sorter")
-    parser.add_argument("--config", default="config.json", help="Path to config.json")
+    parser.add_argument("--config", default="config.conf", help="Path to config.conf")
     parser.add_argument("--json", action="store_true", help="Print JSON output")
     parser.add_argument("--raw", default="", help="Raw OpenClaw slash-command args")
     sub = parser.add_subparsers(dest="command")

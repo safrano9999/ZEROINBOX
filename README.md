@@ -60,10 +60,16 @@ On this host the OpenClaw cron jobs run it at `10:00` and `20:00`
 
 ## Config
 
-Main config:
+Versioned provider defaults:
 
 ```text
-config.json
+provider.conf
+```
+
+Local account/runtime config:
+
+```text
+config.conf
 ```
 
 Credentials belong in an ignored dotenv file next to that config, usually:
@@ -72,11 +78,15 @@ Credentials belong in an ignored dotenv file next to that config, usually:
 .env
 ```
 
-Required Gmail IMAP values:
+Single Gmail account:
 
 ```env
-ZEROINBOX_GMAIL_USERNAME=dummy@example.com
-ZEROINBOX_GMAIL_APP_PASSWORD=xxxxxxxxxxxxxxxx
+# config.conf
+ZEROINBOX_PROVIDER=gmail
+
+# .env
+ZEROINBOX_EMAIL=dummy@example.com
+ZEROINBOX_APP_PASSWORD=xxxxxxxxxxxxxxxx
 ```
 
 LiteLLM is called by ZEROINBOX itself. For the local LiteLLM proxy:
@@ -88,37 +98,38 @@ LITELLM_PORT=888
 ZEROINBOX_MODEL=gemini/gemini-flash-lite-latest
 ```
 
-Multiple source mailboxes can be configured per account:
+Known providers are read from `provider.conf`; currently `gmail` and `icloud`.
+Provider names are case-insensitive. A custom provider is selected in
+`config.conf` and configured with a matching provider block:
 
-```json
-{
-  "accounts": {
-    "gmail": {
-      "inbox": "INBOX",
-      "search": "UNSEEN",
-      "mailboxes": [
-        "INBOX",
-        { "label": "Updates", "inbox": "INBOX/Updates", "search": "UNSEEN" }
-      ]
-    }
-  }
-}
+```env
+# config.conf
+ZEROINBOX_PROVIDER_2=ms
+ZEROINBOX_PROVIDER_MS_URL=outlook.office365.com
+ZEROINBOX_PROVIDER_MS_PORT=993
+
+# .env
+ZEROINBOX_EMAIL_2=dummy@outlook.com
+ZEROINBOX_APP_PASSWORD_2=xxxxxxxxxxxxxxxx
 ```
 
-Without `--account`, `sort` checks every configured account and every listed
-mailbox. With `--account gmail`, it checks all mailboxes for that account.
+Without `--account`, `sort` checks every configured account. With
+`--account gmail`, it checks only that provider account.
 
-## Gmail Labels
+## Account Folders
 
-Create the configured target labels before the first committed sort:
+Create the configured target folders before the first committed sort, or add a
+new account interactively:
 
 ```bash
 cd /home/openclaw/safcontainer/ZEROINBOX
 scripts/gmail-init-labels
 ```
 
-Default label creation uses Gmail IMAP and the app password. Google Cloud OAuth
-JSON is only needed if `ZEROINBOX_LABEL_METHOD=gmail-api` is set.
+The script reads provider choices from `provider.conf`, so the prompt accepts
+either the provider name or the shown number, for example `(1) gmail (2) icloud`.
+Default folder creation uses IMAP and the app password. Google Cloud OAuth JSON
+is only needed if `ZEROINBOX_LABEL_METHOD=gmail-api` is set for Gmail.
 
 ## Local Check
 
@@ -131,9 +142,7 @@ Direct CLI run for debugging:
 
 ```bash
 scripts/setup-python.sh
-.venv/bin/python -m zeroinbox.cli \
-  --config config.json \
-  sort --dry-run --limit 10
+.venv/bin/python -m zeroinbox.cli --config config.conf sort --dry-run --limit 10
 ```
 
 ## Install
