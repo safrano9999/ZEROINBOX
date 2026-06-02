@@ -21,7 +21,6 @@ from zeroinbox.config import account_config, account_names, load_config, resolve
 
 
 OAUTH_CLIENT_PATH = ROOT_DIR / ".gmail-oauth-client.json"
-LEGACY_TOKEN_PATH = ROOT_DIR / ".gmail-token.json"
 
 
 def is_gmail(email: str) -> bool:
@@ -98,8 +97,6 @@ def get_gmail_api_service(email: str, reset_token: bool):
     token_path = token_path_for(email)
     if reset_token and token_path.exists():
         token_path.unlink()
-    if reset_token and LEGACY_TOKEN_PATH.exists():
-        LEGACY_TOKEN_PATH.unlink()
     creds = None
     if token_path.exists():
         creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import configparser
-import json
 import os
 import re
 from pathlib import Path
@@ -154,20 +153,6 @@ def load_static_accounts() -> dict[str, Any]:
         "destinations": DEFAULT_DESTINATIONS,
         "rules": DEFAULT_RULES,
     }
-
-
-def load_legacy_json(path: Path) -> dict[str, Any]:
-    config = json.loads(path.read_text(encoding="utf-8"))
-    config["_configPath"] = str(path)
-    config["_baseDir"] = str(path.parent)
-    env_file = config.get("envFile")
-    if isinstance(env_file, str) and env_file.strip():
-        env_path = Path(env_file).expanduser()
-        if not env_path.is_absolute():
-            env_path = path.parent / env_path
-        inject_env(read_key_values(env_path))
-        config["_envPath"] = str(env_path)
-    return config
 
 
 def load_runtime_files(config_path: Path) -> tuple[Path, dict[str, str]]:
@@ -343,9 +328,6 @@ def build_accounts(static: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 def load_config(config_path: str | Path = "config.conf") -> dict[str, Any]:
     path = Path(config_path).expanduser().resolve()
-    if path.suffix == ".json" and path.exists():
-        return load_legacy_json(path)
-
     env_path, _ = load_runtime_files(path)
     static = load_static_accounts()
     accounts = build_accounts(static)
