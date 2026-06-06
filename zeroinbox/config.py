@@ -218,8 +218,6 @@ def account_suffixes() -> list[str]:
         keys = ("PROVIDER", "EMAIL", "APP_PASSWORD", "PASSWORD")
         if any(indexed_env(key, suffix) for key in keys):
             suffixes.append(suffix)
-    if not suffixes and (env("ZEROINBOX_GMAIL_USERNAME") or env("ZEROINBOX_GMAIL_APP_PASSWORD")):
-        suffixes.append("")
     return suffixes or [""]
 
 
@@ -232,16 +230,6 @@ def indexed_password_env(suffix: str) -> str:
     if indexed_env("APP_PASSWORD", suffix) or not indexed_env("PASSWORD", suffix):
         return suffix_key("APP_PASSWORD", suffix)
     return suffix_key("PASSWORD", suffix)
-
-
-def indexed_fallbacks(provider_name: str, suffix: str, secret_key: str) -> list[str]:
-    if suffix or provider_name != "gmail":
-        return []
-    if secret_key == "username":
-        return ["ZEROINBOX_GMAIL_USERNAME"]
-    if secret_key == "password":
-        return ["ZEROINBOX_GMAIL_APP_PASSWORD"]
-    return []
 
 
 def build_known_provider_account(
@@ -257,9 +245,7 @@ def build_known_provider_account(
         "host": indexed_env("HOST", suffix, str(provider.get("host") or "")),
         "port": parse_int(indexed_env("PORT", suffix, str(provider.get("port") or 993)), 993),
         "usernameEnv": suffix_key("EMAIL", suffix),
-        "usernameFallbackEnv": indexed_fallbacks(provider_name, suffix, "username"),
         "passwordEnv": indexed_password_env(suffix),
-        "passwordFallbackEnv": indexed_fallbacks(provider_name, suffix, "password"),
         "inbox": indexed_env("INBOX", suffix, str(provider.get("inbox") or "INBOX")),
         "search": indexed_env("SEARCH", suffix, str(provider.get("search") or "UNSEEN")),
         "createMissingFolders": parse_bool(
@@ -419,14 +405,6 @@ def resolve_secret(account: dict[str, Any], key: str) -> str:
         value = os.environ.get(env_name, "")
         if value:
             return value
-    fallback_names = account.get(f"{key}FallbackEnv")
-    if isinstance(fallback_names, list):
-        for fallback_name in fallback_names:
-            if not isinstance(fallback_name, str) or not fallback_name:
-                continue
-            value = os.environ.get(fallback_name, "")
-            if value:
-                return value
     return ""
 
 

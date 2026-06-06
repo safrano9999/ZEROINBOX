@@ -184,8 +184,6 @@ def has_configured_account(config_path: Path) -> bool:
     for key, value in values.items():
         if not value:
             continue
-        if key in {"ZEROINBOX_GMAIL_USERNAME", "ZEROINBOX_GMAIL_APP_PASSWORD"}:
-            return True
         if re.match(r"^ZEROINBOX_(PROVIDER|EMAIL|APP_PASSWORD|PASSWORD)(_[0-9]+)?$", key):
             return True
     return False
