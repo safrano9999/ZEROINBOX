@@ -47,6 +47,25 @@ const configSchema = {
         args: { type: "string", default: "sort --commit --limit 10" },
       },
     },
+    delivery: {
+      type: "object",
+      additionalProperties: false,
+      description: "Optional outbound destination used by the webhook.",
+      properties: {
+        channel: {
+          type: "string",
+          default: "telegram",
+        },
+        target: {
+          type: "string",
+          description: "Telegram chat id or another channel-specific destination.",
+        },
+        accountId: {
+          type: "string",
+          description: "Optional channel account id.",
+        },
+      },
+    },
   },
 };
 
@@ -329,6 +348,40 @@ function sendJson(res, statusCode, payload) {
   res.end(`${JSON.stringify(payload, null, 2)}\n`);
 }
 
+async function deliverIfConfigured(api, payload) {
+  const delivery = isRecord(readPluginConfig(api).delivery) ? readPluginConfig(api).delivery : {};
+  const target = readString(delivery.target);
+  if (!target) {
+    return false;
+  }
+  const channel = readString(delivery.channel) ?? "telegram";
+  const adapter = await api.runtime.channel.outbound.loadAdapter(channel);
+  const account = readString(delivery.accountId) ? { accountId: delivery.accountId } : {};
+  const reportPath = readString(payload.reportPath);
+  if (reportPath && adapter?.sendMedia) {
+    await adapter.sendMedia({
+      cfg: api.runtime.config?.current?.() ?? api.config,
+      to: target,
+      text: payload.text ?? "ZEROINBOX",
+      mediaUrl: reportPath,
+      mediaLocalRoots: [path.dirname(reportPath)],
+      forceDocument: true,
+      ...account,
+    });
+    return true;
+  }
+  if (adapter?.sendText) {
+    await adapter.sendText({
+      cfg: api.runtime.config?.current?.() ?? api.config,
+      to: target,
+      text: payload.text ?? "ZEROINBOX done.",
+      ...account,
+    });
+    return true;
+  }
+  throw new Error(`No outbound adapter configured for ${channel}.`);
+}
+
 function registerWebhook(api) {
   const cfg = readPluginConfig(api);
   const webhook = isRecord(cfg.webhook) ? cfg.webhook : {};
@@ -350,9 +403,11 @@ function registerWebhook(api) {
       try {
         const raw = readString(webhook.args) ?? "sort --commit --limit 10";
         const payload = await runZeroinbox(api, { raw });
+        const delivered = await deliverIfConfigured(api, payload);
         sendJson(res, 200, {
           ...payload,
           ...(readString(payload.reportPath) ? { media: `MEDIA:${payload.reportPath}` } : {}),
+          delivered,
         });
       } catch (error) {
         api.logger.error?.(`zeroinbox webhook failed: ${error instanceof Error ? error.message : String(error)}`);
