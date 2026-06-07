@@ -32,6 +32,11 @@ The plugin registers:
 - slash command: `/zeroinbox`
 - webhook: `POST /plugins/zeroinbox/run`
 
+Enter this to trigger webhook from inside container:
+```bash
+curl -sS -X POST -H "Authorization: Bearer ${OPENCLAW_GATEWAY_TOKEN}" "http://127.0.0.1:${OPENCLAW_GATEWAY_PORT:-18789}/plugins/zeroinbox/run"
+```
+
 Examples:
 
 ```text
