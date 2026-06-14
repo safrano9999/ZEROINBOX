@@ -14,8 +14,8 @@ Default use is safe:
 
 ```text
 /zeroinbox status
-/zeroinbox sort --dry-run --limit 10
-/zeroinbox sort --commit --limit 10
+/zeroinbox sort --dry-run
+/zeroinbox sort --commit
 ```
 
 `--commit` is required before messages are moved.

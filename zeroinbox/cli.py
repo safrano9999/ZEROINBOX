@@ -26,7 +26,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_sort = sub.add_parser("sort", help="Classify and optionally move messages")
     p_sort.add_argument("--account", default=None)
-    p_sort.add_argument("--limit", type=int, default=10)
     p_sort.add_argument("--dry-run", action="store_true")
     p_sort.add_argument("--commit", action="store_true", help="Actually move messages")
     p_sort.add_argument("--classifier", choices=["litellm", "rules"], default=None)
@@ -139,7 +138,7 @@ def command_payload(args: argparse.Namespace) -> dict[str, Any]:
         dry_run = True if args.dry_run else default_dry
         if args.commit:
             dry_run = False
-        payload = sort_mail(config, args.account, args.limit, dry_run, args.classifier)
+        payload = sort_mail(config, args.account, dry_run, args.classifier)
         payload["kind"] = "sort"
         return payload
     if command == "classify-test":

@@ -39,7 +39,7 @@ def status(config: dict[str, Any], account_name: str | None = None) -> dict[str,
     account = account_config(config, account_name)
     with ImapAccount(account) as imap:
         count = imap.select_inbox()
-        uids = imap.search_uids(limit=0)
+        uids = imap.search_uids()
     return {
         "account": account["name"],
         "host": account.get("host"),
@@ -64,7 +64,6 @@ def mailbox_label(account: dict[str, Any]) -> str:
 def sort_one_mailbox(
     config: dict[str, Any],
     account: dict[str, Any],
-    limit: int,
     dry_run: bool,
     classifier: str | None,
     run_id: str,
@@ -75,7 +74,7 @@ def sort_one_mailbox(
     moved = 0
 
     with ImapAccount(account) as imap:
-        uids = imap.search_uids(limit=limit)
+        uids = imap.search_uids()
         if uids:
             ensure_classifier_ready(config, classifier)
         for uid in uids:
@@ -121,12 +120,12 @@ def sort_one_mailbox(
     }
 
 
-def sort_mail(config: dict[str, Any], account_name: str | None, limit: int, dry_run: bool, classifier: str | None) -> dict[str, Any]:
+def sort_mail(config: dict[str, Any], account_name: str | None, dry_run: bool, classifier: str | None) -> dict[str, Any]:
     accounts = mailbox_accounts(config, account_name)
     if not accounts:
         raise ValueError("No ZEROINBOX accounts configured.")
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
-    mailbox_payloads = [sort_one_mailbox(config, account, limit, dry_run, classifier, run_id) for account in accounts]
+    mailbox_payloads = [sort_one_mailbox(config, account, dry_run, classifier, run_id) for account in accounts]
     records = [record for payload in mailbox_payloads for record in payload["records"]]
     sort_results = [result for payload in mailbox_payloads for result in payload["_sortResults"]]
     moved = sum(int(payload["moved"]) for payload in mailbox_payloads)

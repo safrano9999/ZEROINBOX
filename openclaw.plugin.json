@@ -36,7 +36,7 @@
       },
       "defaultArgs": {
         "type": "string",
-        "default": "sort --commit --limit 10",
+        "default": "sort --commit",
         "description": "Arguments used when /zeroinbox is called without text."
       },
       "webhook": {
@@ -53,7 +53,7 @@
           },
           "args": {
             "type": "string",
-            "default": "sort --commit --limit 10"
+            "default": "sort --commit"
           }
         }
       },

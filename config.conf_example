@@ -1,12 +1,2 @@
-# config.conf_example - non-secret ZEROINBOX runtime config.
-# Account/provider blocks are written by ZEROINBOX_init.sh before config.sh.
-
-# First account provider. Additional accounts use ZEROINBOX_PROVIDER_2, etc.
-ZEROINBOX_PROVIDER=gmail
-
-# Runtime defaults.
-ZEROINBOX_ENV_FILE=.env
-ZEROINBOX_DEFAULT_DRY_RUN=true
-ZEROINBOX_CLASSIFIER=litellm
-ZEROINBOX_LOG_DIR=logs
-ZEROINBOX_REPORT_DIR=REPORTS
+# config.conf_example - optional non-secret ZEROINBOX overrides.
+# No overrides are required for the standard runtime.

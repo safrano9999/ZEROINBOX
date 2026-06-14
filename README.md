@@ -43,14 +43,14 @@ Examples:
 /zeroinbox
 /zeroinbox status
 /zeroinbox folders
-/zeroinbox sort --dry-run --limit 10
-/zeroinbox sort --commit --limit 10
+/zeroinbox sort --dry-run
+/zeroinbox sort --commit
 ```
 
 By default `/zeroinbox` and the webhook run:
 
 ```text
-sort --commit --limit 10
+sort --commit
 ```
 
 Sort responses include `MEDIA:<pdf path>` when a PDF was generated, so Telegram
@@ -155,7 +155,7 @@ Direct CLI run for debugging:
 
 ```bash
 scripts/setup-python.sh
-.venv/bin/python -m zeroinbox.cli --config config.conf sort --dry-run --limit 10
+.venv/bin/python -m zeroinbox.cli --config config.conf sort --dry-run
 ```
 
 ## Install

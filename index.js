@@ -35,7 +35,7 @@ const configSchema = {
     },
     defaultArgs: {
       type: "string",
-      default: "sort --commit --limit 10",
+      default: "sort --commit",
       description: "Arguments used when /zeroinbox is called without text.",
     },
     webhook: {
@@ -44,7 +44,7 @@ const configSchema = {
       properties: {
         enabled: { type: "boolean", default: true },
         path: { type: "string", default: defaultWebhookPath },
-        args: { type: "string", default: "sort --commit --limit 10" },
+        args: { type: "string", default: "sort --commit" },
       },
     },
     delivery: {
@@ -75,7 +75,7 @@ const toolParameters = {
   properties: {
     raw: {
       type: "string",
-      description: "Raw /zeroinbox arguments, for example 'sort --dry-run --limit 10'.",
+      description: "Raw /zeroinbox arguments, for example 'sort --dry-run'.",
     },
   },
 };
@@ -322,7 +322,7 @@ async function resolvePython(ctx, signal) {
 
 async function runZeroinbox(ctx, params, signal) {
   const cfg = readPluginConfig(ctx);
-  const raw = readString(params.raw) ?? readString(cfg.defaultArgs) ?? "sort --commit --limit 10";
+  const raw = readString(params.raw) ?? readString(cfg.defaultArgs) ?? "sort --commit";
   const python = await resolvePython(ctx, signal);
   const configPath = resolveConfigPath(ctx);
   const env = resolveEnv(ctx);
@@ -429,7 +429,7 @@ function registerWebhook(api) {
         return true;
       }
       try {
-        const raw = readString(webhook.args) ?? "sort --commit --limit 10";
+        const raw = readString(webhook.args) ?? "sort --commit";
         const payload = await runZeroinbox(api, { raw });
         const delivered = await deliverIfConfigured(api, payload);
         sendJson(res, 200, {

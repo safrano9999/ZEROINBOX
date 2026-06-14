@@ -92,16 +92,13 @@ class ImapAccount(AbstractContextManager["ImapAccount"]):
         except Exception:
             return 0
 
-    def search_uids(self, limit: int) -> list[str]:
+    def search_uids(self) -> list[str]:
         self.select_inbox()
         criteria = str(self.account.get("search") or "UNSEEN").strip() or "UNSEEN"
         status, data = self.imap.uid("SEARCH", None, *criteria.split())
         if status != "OK":
             raise RuntimeError(f"IMAP search failed: {data}")
-        uids = data[0].decode("ascii", errors="ignore").split() if data and data[0] else []
-        if limit > 0:
-            return uids[:limit]
-        return uids
+        return data[0].decode("ascii", errors="ignore").split() if data and data[0] else []
 
     def fetch_message(self, uid: str) -> MailSummary:
         # BODY.PEEK[] fetches the message body without setting Gmail's \Seen flag.
