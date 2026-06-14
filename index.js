@@ -163,6 +163,33 @@ function readDotenv(filePath) {
   return loaded;
 }
 
+function readProcEnv() {
+  try {
+    const loaded = {};
+    for (const entry of fs.readFileSync("/proc/self/environ", "utf8").split("\0")) {
+      const equals = entry.indexOf("=");
+      if (equals > 0) {
+        loaded[entry.slice(0, equals)] = entry.slice(equals + 1);
+      }
+    }
+    return loaded;
+  } catch {
+    return {};
+  }
+}
+
+function runtimeEnv() {
+  const picked = {};
+  for (const source of [readProcEnv(), process.env]) {
+    for (const [key, value] of Object.entries(source)) {
+      if (/^(ZEROINBOX|LITELLM)_/.test(key)) {
+        picked[key] = value;
+      }
+    }
+  }
+  return picked;
+}
+
 function readJson(filePath) {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -308,6 +335,7 @@ async function runZeroinbox(ctx, params, signal) {
       timeoutMs: 600_000,
       env: {
         ...env,
+        ...runtimeEnv(),
         PYTHONPATH: pluginRoot,
       },
     },
