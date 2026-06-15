@@ -410,6 +410,15 @@ async function deliverIfConfigured(api, payload) {
   throw new Error(`No outbound adapter configured for ${channel}.`);
 }
 
+async function runZeroinboxCommand(api, raw) {
+  const payload = await runZeroinbox(api, { raw });
+  const reportPath = readString(payload.reportPath);
+  if (reportPath) {
+    return { mediaUrl: reportPath };
+  }
+  return { text: payload.text ?? "ZEROINBOX done." };
+}
+
 function registerWebhook(api) {
   const cfg = readPluginConfig(api);
   const webhook = isRecord(cfg.webhook) ? cfg.webhook : {};
@@ -461,8 +470,7 @@ export default definePluginEntry({
       requireAuth: true,
       handler: async (ctx) => {
         const raw = readString(ctx?.args) ?? "";
-        const payload = await runZeroinbox(api, { raw });
-        return { text: payload.text ?? "ZEROINBOX done." };
+        return runZeroinboxCommand(api, raw);
       },
     });
     registerWebhook(api);
