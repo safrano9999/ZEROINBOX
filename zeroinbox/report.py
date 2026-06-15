@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime
 from html import escape
 from pathlib import Path
@@ -24,7 +25,8 @@ DEFAULT_DEST_COLOR = "#1a2b4a"
 
 
 def _he(value: object) -> str:
-    return escape(str(value or ""))
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", str(value or ""))
+    return escape(text)
 
 
 def report_dir(config: dict[str, Any]) -> Path:
@@ -223,10 +225,11 @@ def write_pdf_report(
     for index, result in enumerate(results):
         elems.append(PageBreak())
         destination_color = HexColor(DEST_COLORS.get(result.destination, DEFAULT_DEST_COLOR))
+        source = " / ".join(item for item in (result.source_account, result.source_mailbox) if item) or account
         nav = Table(
             [
                 [
-                    Paragraph(account.upper(), nav_left_style),
+                    Paragraph(_he(source.upper()), nav_left_style),
                     Paragraph(f"{index + 1} &nbsp;/&nbsp; {total}", nav_right_style),
                 ]
             ],

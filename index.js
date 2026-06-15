@@ -304,7 +304,10 @@ async function runZeroinboxCommand(api, raw) {
   const payload = await runZeroinbox(api, { raw });
   const reportPath = readString(payload.reportPath);
   if (reportPath) {
-    return { mediaUrl: reportPath };
+    return {
+      text: payload.text ?? "ZEROINBOX done.",
+      mediaUrl: reportPath,
+    };
   }
   return { text: payload.text ?? "ZEROINBOX done." };
 }

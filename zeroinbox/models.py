@@ -39,3 +39,5 @@ class SortResult:
     summary: str
     reason: str
     action: str
+    source_account: str = ""
+    source_mailbox: str = ""

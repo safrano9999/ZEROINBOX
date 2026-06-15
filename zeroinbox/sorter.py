@@ -97,11 +97,13 @@ def sort_one_mailbox(
                 summary=decision.summary,
                 reason=decision.reason,
                 action=action,
+                source_account=account["name"],
+                source_mailbox=str(account.get("inbox") or "INBOX"),
             )
             results.append(result)
             record = dict(result.__dict__)
-            record["sourceAccount"] = account["name"]
-            record["sourceMailbox"] = str(account.get("inbox") or "INBOX")
+            record["sourceAccount"] = record.pop("source_account")
+            record["sourceMailbox"] = record.pop("source_mailbox")
             records.append(record)
         if moved:
             imap.expunge()
@@ -125,10 +127,16 @@ def sort_mail(config: dict[str, Any], account_name: str | None, dry_run: bool, c
     if not accounts:
         raise ValueError("No ZEROINBOX accounts configured.")
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
-    mailbox_payloads = [sort_one_mailbox(config, account, dry_run, classifier, run_id) for account in accounts]
-    records = [record for payload in mailbox_payloads for record in payload["records"]]
-    sort_results = [result for payload in mailbox_payloads for result in payload["_sortResults"]]
-    moved = sum(int(payload["moved"]) for payload in mailbox_payloads)
+    mailbox_payloads: list[dict[str, Any]] = []
+    records: list[dict[str, Any]] = []
+    sort_results: list[SortResult] = []
+    moved = 0
+    for account in accounts:
+        payload = sort_one_mailbox(config, account, dry_run, classifier, run_id)
+        mailbox_payloads.append(payload)
+        records.extend(payload["records"])
+        sort_results.extend(payload["_sortResults"])
+        moved += int(payload["moved"])
 
     log_path = log_dir(config) / f"zeroinbox-{run_id}.jsonl"
     if records:
