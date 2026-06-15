@@ -30,7 +30,8 @@ def _he(value: object) -> str:
 
 
 def report_dir(config: dict[str, Any]) -> Path:
-    return Path(str(config["_baseDir"])) / "REPORTS"
+    configured = str(config.get("_reportDir") or "").strip()
+    return Path(configured).expanduser() if configured else Path(str(config["_baseDir"])) / "REPORTS"
 
 
 def write_pdf_report(

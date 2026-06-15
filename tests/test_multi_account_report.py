@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from zeroinbox.models import SortResult
+from zeroinbox.config import load_config
 from zeroinbox.report import write_pdf_report
 from zeroinbox.cli import render_sort
 from zeroinbox.sorter import sort_mail
@@ -29,6 +30,20 @@ def result(account: str, subject: str) -> SortResult:
 
 
 class MultiAccountReportTests(unittest.TestCase):
+    def test_openclaw_report_directory_override(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report_dir = Path(tmp) / "workspace" / "ZEROINBOX"
+            config = load_config(report_dir)
+            path = write_pdf_report(
+                config,
+                "20260615-120000",
+                "gmail / INBOX",
+                False,
+                1,
+                [result("gmail", "Workspace report")],
+            )
+            self.assertEqual(path.parent, report_dir)
+
     def test_three_accounts_are_collected_into_one_report(self) -> None:
         accounts = [{"name": "gmail"}, {"name": "gmail_2"}, {"name": "icloud_3"}]
         first = result("gmail", "first")

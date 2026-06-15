@@ -4,6 +4,7 @@ import argparse
 import json
 import shlex
 import sys
+from pathlib import Path
 from typing import Any
 
 from .classifier import destination_list
@@ -15,6 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="ZEROINBOX standalone mail sorter")
     parser.add_argument("--json", action="store_true", help="Print JSON output")
     parser.add_argument("--raw", default="", help="Raw OpenClaw slash-command args")
+    parser.add_argument("--report-dir", default="", help=argparse.SUPPRESS)
     sub = parser.add_subparsers(dest="command")
 
     p_status = sub.add_parser("status", help="Connect and count matching messages")
@@ -46,7 +48,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     initial = build_parser().parse_args(argv)
     if initial.raw.strip():
         raw_args = shlex.split(initial.raw)
-        return build_parser().parse_args(["--json", *raw_args])
+        report_args = ["--report-dir", initial.report_dir] if initial.report_dir else []
+        return build_parser().parse_args(["--json", *report_args, *raw_args])
     return initial
 
 
@@ -122,7 +125,7 @@ def render(payload: dict[str, Any]) -> str:
 
 
 def command_payload(args: argparse.Namespace) -> dict[str, Any]:
-    config = load_config()
+    config = load_config(Path(args.report_dir) if args.report_dir else None)
     command = args.command or "status"
     if command == "status":
         payload = status(config, args.account)

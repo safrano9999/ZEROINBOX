@@ -19,7 +19,8 @@ LiteLLM decision logic.
 - classifies matching messages with `litellm.completion(...)`
 - moves messages into configured folders when run with `--commit`
 - writes JSONL decisions to `logs/`
-- writes a PDF report to `REPORTS/`
+- writes a PDF report to `REPORTS/` on bare metal
+- writes OpenClaw reports to the allowed agent workspace under `ZEROINBOX/`
 
 The PDF keeps the known ZEROINBOX layout: colored overview first, then one page
 per processed email.

@@ -277,7 +277,7 @@ def build_accounts(static: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return accounts
 
 
-def load_config() -> dict[str, Any]:
+def load_config(report_dir: Path | None = None) -> dict[str, Any]:
     static = load_static_accounts()
     accounts = build_accounts(static)
     default_account = next(iter(accounts), "")
@@ -289,6 +289,7 @@ def load_config() -> dict[str, Any]:
         "accounts": accounts,
         "rules": static.get("rules") if isinstance(static.get("rules"), list) else [],
         "_baseDir": str(ROOT_DIR),
+        "_reportDir": str(report_dir) if report_dir else "",
     }
 
 
