@@ -171,14 +171,8 @@ def read_kv(path: Path) -> dict[str, str]:
     return values
 
 
-def has_configured_account(config_path: Path) -> bool:
-    config_values = read_kv(config_path)
-    env_file = config_values.get("ZEROINBOX_ENV_FILE") or os.environ.get("ZEROINBOX_ENV_FILE") or ".env"
-    env_path = Path(env_file)
-    if not env_path.is_absolute():
-        env_path = config_path.parent / env_path
-    values = dict(config_values)
-    values.update(read_kv(env_path))
+def has_configured_account() -> bool:
+    values = read_kv(ROOT_DIR / ".env")
     values.update({key: value for key, value in os.environ.items() if key.startswith("ZEROINBOX_")})
 
     for key, value in values.items():
@@ -189,10 +183,10 @@ def has_configured_account(config_path: Path) -> bool:
     return False
 
 
-def configured_targets(config_path: Path, selected: str) -> list[tuple[str, str, dict[str, Any], list[dict[str, Any]]]]:
-    if not has_configured_account(config_path):
+def configured_targets(selected: str) -> list[tuple[str, str, dict[str, Any], list[dict[str, Any]]]]:
+    if not has_configured_account():
         return []
-    config = load_config(config_path)
+    config = load_config()
     names = account_names(config)
     if not names:
         return []
@@ -213,16 +207,11 @@ def configured_targets(config_path: Path, selected: str) -> list[tuple[str, str,
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create ZEROINBOX folders/labels.")
     parser.add_argument("--account", default="all", help="account name or all")
-    parser.add_argument("--config", default=os.environ.get("ZEROINBOX_CONFIG", "config.conf"))
     parser.add_argument("--method", default=os.environ.get("ZEROINBOX_LABEL_METHOD", "imap"))
     parser.add_argument("--reset-token", action="store_true")
     args = parser.parse_args()
 
-    config_path = Path(args.config)
-    if not config_path.is_absolute():
-        config_path = ROOT_DIR / config_path
-
-    selected = configured_targets(config_path, args.account.strip().lower())
+    selected = configured_targets(args.account.strip().lower())
     if not selected:
         print("No ZEROINBOX accounts configured - label init skipped.")
         return 0

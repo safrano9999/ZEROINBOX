@@ -13,7 +13,6 @@ from .sorter import classify_sample, list_folders, sort_mail, status
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="ZEROINBOX standalone mail sorter")
-    parser.add_argument("--config", default="config.conf", help="Path to config.conf")
     parser.add_argument("--json", action="store_true", help="Print JSON output")
     parser.add_argument("--raw", default="", help="Raw OpenClaw slash-command args")
     sub = parser.add_subparsers(dest="command")
@@ -47,7 +46,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     initial = build_parser().parse_args(argv)
     if initial.raw.strip():
         raw_args = shlex.split(initial.raw)
-        return build_parser().parse_args(["--config", initial.config, "--json", *raw_args])
+        return build_parser().parse_args(["--json", *raw_args])
     return initial
 
 
@@ -117,13 +116,13 @@ def render(payload: dict[str, Any]) -> str:
     if kind == "config":
         return (
             f"ZEROINBOX config: account={payload['account']} host={payload['host']} "
-            f"destinations={payload['destinations']} defaultDryRun={payload['defaultDryRun']}"
+            f"destinations={payload['destinations']}"
         )
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
 def command_payload(args: argparse.Namespace) -> dict[str, Any]:
-    config = load_config(args.config)
+    config = load_config()
     command = args.command or "status"
     if command == "status":
         payload = status(config, args.account)
@@ -134,8 +133,7 @@ def command_payload(args: argparse.Namespace) -> dict[str, Any]:
         payload["kind"] = "folders"
         return payload
     if command == "sort":
-        default_dry = bool(config.get("defaultDryRun", True))
-        dry_run = True if args.dry_run else default_dry
+        dry_run = bool(args.dry_run)
         if args.commit:
             dry_run = False
         payload = sort_mail(config, args.account, dry_run, args.classifier)
@@ -152,7 +150,6 @@ def command_payload(args: argparse.Namespace) -> dict[str, Any]:
             "account": account["name"],
             "host": account.get("host"),
             "destinations": len(destination_list(account)),
-            "defaultDryRun": bool(config.get("defaultDryRun", True)),
         }
     raise ValueError(f"Unknown command: {command}")
 

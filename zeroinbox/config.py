@@ -66,27 +66,6 @@ DEFAULT_RULES = [
 ]
 
 
-def read_key_values(path: Path) -> dict[str, str]:
-    values: dict[str, str] = {}
-    if not path.exists():
-        return values
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        if key:
-            values[key] = value
-    return values
-
-
-def inject_env(values: dict[str, str]) -> None:
-    for key, value in values.items():
-        os.environ.setdefault(key, value)
-
-
 def parse_bool(value: Any, default: bool = False) -> bool:
     if isinstance(value, bool):
         return value
@@ -153,20 +132,6 @@ def load_static_accounts() -> dict[str, Any]:
         "destinations": DEFAULT_DESTINATIONS,
         "rules": DEFAULT_RULES,
     }
-
-
-def load_runtime_files(config_path: Path) -> tuple[Path, dict[str, str]]:
-    base_dir = config_path.parent
-    config_values = read_key_values(config_path)
-    env_path = Path(config_values.get("ZEROINBOX_ENV_FILE") or env("ZEROINBOX_ENV_FILE", ".env"))
-    if not env_path.is_absolute():
-        env_path = base_dir / env_path
-    env_values = read_key_values(env_path)
-
-    merged = dict(config_values)
-    merged.update(env_values)
-    inject_env(merged)
-    return env_path, merged
 
 
 def format_destinations(static: dict[str, Any], archive_prefix: str) -> list[dict[str, str]]:
@@ -312,28 +277,18 @@ def build_accounts(static: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return accounts
 
 
-def load_config(config_path: str | Path = "config.conf") -> dict[str, Any]:
-    path = Path(config_path).expanduser().resolve()
-    env_path, _ = load_runtime_files(path)
+def load_config() -> dict[str, Any]:
     static = load_static_accounts()
     accounts = build_accounts(static)
-    default_account = env("ZEROINBOX_DEFAULT_ACCOUNT", next(iter(accounts), "gmail")).lower()
-    if default_account not in accounts:
-        default_account = next(iter(accounts), "")
+    default_account = next(iter(accounts), "")
 
     return {
         "defaultAccount": default_account,
         "defaultModel": env("ZEROINBOX_MODEL", "gemini/gemini-flash-lite-latest"),
-        "classifier": env("ZEROINBOX_CLASSIFIER", "litellm"),
-        "defaultDryRun": parse_bool(env("ZEROINBOX_DEFAULT_DRY_RUN", "true"), True),
-        "logDir": env("ZEROINBOX_LOG_DIR", "logs"),
-        "reportDir": env("ZEROINBOX_REPORT_DIR", "REPORTS"),
-        "envFile": str(env_path),
+        "classifier": "litellm",
         "accounts": accounts,
         "rules": static.get("rules") if isinstance(static.get("rules"), list) else [],
-        "_configPath": str(path),
-        "_baseDir": str(path.parent),
-        "_envPath": str(env_path),
+        "_baseDir": str(ROOT_DIR),
     }
 
 
@@ -413,8 +368,4 @@ def resolve_model(config: dict[str, Any]) -> str:
 
 
 def log_dir(config: dict[str, Any]) -> Path:
-    raw = str(config.get("logDir") or "logs")
-    path = Path(raw).expanduser()
-    if not path.is_absolute():
-        path = Path(str(config["_baseDir"])) / path
-    return path
+    return Path(str(config["_baseDir"])) / "logs"

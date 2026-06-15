@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 const pluginRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)));
-const pluginConfigPath = path.join(pluginRoot, "config.conf");
 const requirementsPath = path.join(pluginRoot, "requirements.txt");
 const venvDir = path.join(pluginRoot, ".venv");
 const venvPython = path.join(venvDir, "bin", "python");
@@ -16,17 +15,9 @@ const configSchema = {
   type: "object",
   additionalProperties: false,
   properties: {
-    configPath: {
-      type: "string",
-      description: "Optional path to ZEROINBOX config.conf.",
-    },
     pythonPath: {
       type: "string",
       description: "Optional Python interpreter path.",
-    },
-    envFile: {
-      type: "string",
-      description: "Optional dotenv file with IMAP and LLM credentials.",
     },
     autoSetupPython: {
       type: "boolean",
@@ -121,48 +112,6 @@ function resolvePath(rawPath, baseDir) {
   return path.isAbsolute(expanded) ? expanded : path.resolve(baseDir, expanded);
 }
 
-function resolveConfigPath(ctx) {
-  const cfg = readPluginConfig(ctx);
-  const configured = readString(cfg.configPath) ?? readString(process.env.ZEROINBOX_CONFIG);
-  if (configured) {
-    return resolvePath(configured, pluginRoot);
-  }
-  return pluginConfigPath;
-}
-
-function readDotenv(filePath) {
-  let content;
-  try {
-    content = fs.readFileSync(filePath, "utf8");
-  } catch {
-    return {};
-  }
-  const loaded = {};
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const equals = trimmed.indexOf("=");
-    if (equals <= 0) {
-      continue;
-    }
-    const name = trimmed.slice(0, equals).trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name) || process.env[name] !== undefined) {
-      continue;
-    }
-    let value = trimmed.slice(equals + 1).trim();
-    if (
-      value.length >= 2
-      && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
-    ) {
-      value = value.slice(1, -1);
-    }
-    loaded[name] = value;
-  }
-  return loaded;
-}
-
 function readProcEnv() {
   try {
     const loaded = {};
@@ -188,62 +137,6 @@ function runtimeEnv() {
     }
   }
   return picked;
-}
-
-function readJson(filePath) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch {
-    return {};
-  }
-}
-
-function readKeyValues(filePath) {
-  let content;
-  try {
-    content = fs.readFileSync(filePath, "utf8");
-  } catch {
-    return {};
-  }
-  const loaded = {};
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const equals = trimmed.indexOf("=");
-    if (equals <= 0) {
-      continue;
-    }
-    const name = trimmed.slice(0, equals).trim();
-    let value = trimmed.slice(equals + 1).trim();
-    if (
-      value.length >= 2
-      && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
-    ) {
-      value = value.slice(1, -1);
-    }
-    loaded[name] = value;
-  }
-  return loaded;
-}
-
-function readConfigValues(filePath) {
-  return filePath.endsWith(".json") ? readJson(filePath) : readKeyValues(filePath);
-}
-
-function resolveEnv(ctx) {
-  const cfg = readPluginConfig(ctx);
-  const configPath = resolveConfigPath(ctx);
-  const fileConfig = readConfigValues(configPath);
-  const envFile = readString(cfg.envFile)
-    ?? readString(fileConfig.envFile)
-    ?? readString(fileConfig.ZEROINBOX_ENV_FILE)
-    ?? ".env";
-  if (!envFile) {
-    return {};
-  }
-  return readDotenv(resolvePath(envFile, path.dirname(configPath)));
 }
 
 function runProcess(command, args, options = {}) {
@@ -324,17 +217,14 @@ async function runZeroinbox(ctx, params, signal) {
   const cfg = readPluginConfig(ctx);
   const raw = readString(params.raw) ?? readString(cfg.defaultArgs) ?? "sort --commit";
   const python = await resolvePython(ctx, signal);
-  const configPath = resolveConfigPath(ctx);
-  const env = resolveEnv(ctx);
   const result = await runProcess(
     python,
-    ["-m", "zeroinbox.cli", "--config", configPath, "--json", "--raw", raw],
+    ["-m", "zeroinbox.cli", "--json", "--raw", raw],
     {
       cwd: pluginRoot,
       signal,
       timeoutMs: 600_000,
       env: {
-        ...env,
         ...runtimeEnv(),
         PYTHONPATH: pluginRoot,
       },

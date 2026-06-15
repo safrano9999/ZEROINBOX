@@ -71,21 +71,15 @@ Versioned provider defaults:
 provider.conf
 ```
 
-Local account/runtime config:
-
-```text
-config.conf
-```
-
-Credentials belong in an ignored dotenv file next to that config, usually:
+Local account/runtime values belong in the ignored dotenv file:
 
 ```text
 .env
 ```
 
-Accounts are added by the init script. It writes the provider block to
-`config.conf` and the credentials to `.env`; running it again appends the next
-slot (`_2`, `_3`, ...).
+Accounts are added by the init script. It writes provider, address, password
+and custom provider connection values to `.env`; running it again appends the
+next slot (`_2`, `_3`, ...).
 
 ```bash
 ./ZEROINBOX_init.sh
@@ -94,10 +88,7 @@ slot (`_2`, `_3`, ...).
 Single Gmail account after init:
 
 ```env
-# config.conf
 ZEROINBOX_PROVIDER=gmail
-
-# .env
 ZEROINBOX_EMAIL=dummy@example.com
 ZEROINBOX_APP_PASSWORD=xxxxxxxxxxxxxxxx
 ```
@@ -108,20 +99,16 @@ LiteLLM is called by ZEROINBOX itself. For the local LiteLLM proxy:
 LITELLM_API_KEY=...
 LITELLM_URL=https://forky.tailb13f39.ts.net
 LITELLM_PORT=888
-ZEROINBOX_MODEL=gemini/gemini-flash-lite-latest
 ```
 
 Known providers are read from `provider.conf`; currently `gmail` and `icloud`.
 Provider names are case-insensitive. A custom provider entered in
-`ZEROINBOX_init.sh` writes a matching provider block:
+`ZEROINBOX_init.sh` writes the matching connection values to `.env`:
 
 ```env
-# config.conf
 ZEROINBOX_PROVIDER_2=ms
 ZEROINBOX_PROVIDER_MS_URL=outlook.office365.com
 ZEROINBOX_PROVIDER_MS_PORT=993
-
-# .env
 ZEROINBOX_EMAIL_2=dummy@outlook.com
 ZEROINBOX_APP_PASSWORD_2=xxxxxxxxxxxxxxxx
 ```
@@ -155,7 +142,8 @@ Direct CLI run for debugging:
 
 ```bash
 scripts/setup-python.sh
-.venv/bin/python -m zeroinbox.cli --config config.conf sort --dry-run
+set -a; . ./.env; set +a
+.venv/bin/python -m zeroinbox.cli sort --dry-run
 ```
 
 ## Install

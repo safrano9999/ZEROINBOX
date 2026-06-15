@@ -28,11 +28,7 @@ def _he(value: object) -> str:
 
 
 def report_dir(config: dict[str, Any]) -> Path:
-    raw = str(config.get("reportDir") or "REPORTS")
-    path = Path(raw).expanduser()
-    if not path.is_absolute():
-        path = Path(str(config["_baseDir"])) / path
-    return path
+    return Path(str(config["_baseDir"])) / "REPORTS"
 
 
 def write_pdf_report(

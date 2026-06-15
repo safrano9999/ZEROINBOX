@@ -17,17 +17,9 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "configPath": {
-        "type": "string",
-        "description": "Optional path to ZEROINBOX config.conf."
-      },
       "pythonPath": {
         "type": "string",
         "description": "Optional Python interpreter path."
-      },
-      "envFile": {
-        "type": "string",
-        "description": "Optional dotenv file with IMAP and LLM credentials."
       },
       "autoSetupPython": {
         "type": "boolean",

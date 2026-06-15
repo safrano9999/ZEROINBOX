@@ -2,8 +2,8 @@
 """ZEROINBOX account init.
 
 This script is intentionally only about account config:
-- provider/account metadata goes to config.conf
-- mail address/password go to .env
+- provider/mail address/password go to .env
+- custom provider connection values also go to .env
 - folder/label creation is handled separately by scripts/gmail-init-labels
 """
 from __future__ import annotations
@@ -16,7 +16,6 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parent
-CONFIG_PATH = ROOT_DIR / "config.conf"
 ENV_PATH = ROOT_DIR / ".env"
 
 
@@ -110,15 +109,10 @@ def provider_key(suffix: str) -> str:
     return env_key("PROVIDER", suffix)
 
 
-def account_name(provider: str, suffix: str) -> str:
-    normalized = re.sub(r"[^a-z0-9]+", "_", provider.lower()).strip("_") or "account"
-    return normalized if not suffix else f"{normalized}{suffix}"
-
-
-def first_free_or_incomplete_slot(conf: dict[str, str], env: dict[str, str]) -> str:
+def first_free_or_incomplete_slot(env: dict[str, str]) -> str:
     for index in range(1, 51):
         suffix = suffix_for_index(index)
-        has_provider = bool(conf.get(provider_key(suffix)))
+        has_provider = bool(env.get(provider_key(suffix)))
         has_email = bool(env.get(env_key("EMAIL", suffix)))
         has_password = bool(env.get(env_key("APP_PASSWORD", suffix)) or env.get(env_key("PASSWORD", suffix)))
         if has_provider and not (has_email and has_password):
@@ -128,11 +122,11 @@ def first_free_or_incomplete_slot(conf: dict[str, str], env: dict[str, str]) -> 
     raise SystemExit("No free ZEROINBOX account slot found.")
 
 
-def has_complete_account(conf: dict[str, str], env: dict[str, str]) -> bool:
+def has_complete_account(env: dict[str, str]) -> bool:
     for index in range(1, 51):
         suffix = suffix_for_index(index)
         if (
-            conf.get(provider_key(suffix))
+            env.get(provider_key(suffix))
             and env.get(env_key("EMAIL", suffix))
             and (env.get(env_key("APP_PASSWORD", suffix)) or env.get(env_key("PASSWORD", suffix)))
         ):
@@ -156,15 +150,15 @@ def ask_provider(default_provider: str = "") -> str:
     return raw
 
 
-def custom_provider_updates(conf: dict[str, str], provider: str) -> dict[str, str]:
+def custom_provider_updates(env: dict[str, str], provider: str) -> dict[str, str]:
     if provider in provider_names():
         return {}
     token = provider_token(provider)
     prefix = f"ZEROINBOX_PROVIDER_{token}"
-    if conf.get(f"{prefix}_URL") or conf.get(f"{prefix}_HOST"):
+    if env.get(f"{prefix}_URL") or env.get(f"{prefix}_HOST"):
         return {}
 
-    print(f"Custom provider '{provider}' needs IMAP connection values in config.conf.")
+    print(f"Custom provider '{provider}' needs IMAP connection values.")
     default_host = "outlook.office365.com" if provider in {"ms", "microsoft", "outlook"} else ""
     host = ask("IMAP host or URL", default_host)
     if not host:
@@ -181,17 +175,11 @@ def custom_provider_updates(conf: dict[str, str], provider: str) -> dict[str, st
 
 
 def add_account() -> None:
-    conf = read_kv(CONFIG_PATH)
     env = read_kv(ENV_PATH)
-    suffix = first_free_or_incomplete_slot(conf, env)
-    provider = ask_provider(conf.get(provider_key(suffix), ""))
+    suffix = first_free_or_incomplete_slot(env)
+    provider = ask_provider(env.get(provider_key(suffix), ""))
 
-    config_updates = {provider_key(suffix): provider}
-    config_updates.update(custom_provider_updates(conf, provider))
-    if not conf.get("ZEROINBOX_ENV_FILE"):
-        config_updates["ZEROINBOX_ENV_FILE"] = ".env"
-    if not conf.get("ZEROINBOX_DEFAULT_ACCOUNT"):
-        config_updates["ZEROINBOX_DEFAULT_ACCOUNT"] = account_name(provider, suffix)
+    env_updates = custom_provider_updates(env, provider)
 
     email = ask("Mail address")
     if not email:
@@ -200,17 +188,19 @@ def add_account() -> None:
     if not password:
         raise SystemExit("Password required.")
 
-    upsert_kv(CONFIG_PATH, config_updates)
-    upsert_kv(
-        ENV_PATH,
+    env_updates.update(
         {
+            provider_key(suffix): provider,
             env_key("EMAIL", suffix): email,
             env_key("APP_PASSWORD", suffix): password,
-        },
+        }
+    )
+    upsert_kv(
+        ENV_PATH,
+        env_updates,
         0o600,
     )
-    print(f"Wrote {provider_key(suffix)} to {CONFIG_PATH}.")
-    print(f"Wrote {env_key('EMAIL', suffix)} and {env_key('APP_PASSWORD', suffix)} to {ENV_PATH}.")
+    print(f"Wrote {provider_key(suffix)}, {env_key('EMAIL', suffix)} and {env_key('APP_PASSWORD', suffix)} to {ENV_PATH}.")
 
 
 def main() -> int:
@@ -227,9 +217,8 @@ def main() -> int:
         if not sys.stdin.isatty():
             print("ZEROINBOX account init skipped: no interactive terminal.")
             return 0
-        conf = read_kv(CONFIG_PATH)
         env = read_kv(ENV_PATH)
-        default_mode = "skip" if has_complete_account(conf, env) else "new"
+        default_mode = "skip" if has_complete_account(env) else "new"
         mode = ask_choice("ZEROINBOX account init", ("skip", "new"), default_mode)
         if mode == "skip":
             print("ZEROINBOX account init skipped.")
