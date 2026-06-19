@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           zipinfo -1 "$ZIP_NAME" | tee /tmp/archive-files.txt
-          if grep -E '(^|/)(\.env|\.calenv|\.gmail-oauth-client\.json|\.gmail-token.*\.json|\.venv|node_modules|__pycache__|logs|LOGS|state|REPORTS)(/|$)|(\.pyc|\.sqlite3)$' /tmp/archive-files.txt; then
+          if grep -E '(^|/)(tag\.sh|\.env|\.calenv|\.gmail-oauth-client\.json|\.gmail-token.*\.json|\.venv|node_modules|__pycache__|logs|LOGS|state|REPORTS)(/|$)|(\.pyc|\.sqlite3)$' /tmp/archive-files.txt; then
             echo "Refusing to publish archive with generated state, secrets, cache, or database files." >&2
             exit 1
           fi
