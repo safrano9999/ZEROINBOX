@@ -4,9 +4,12 @@ set -euo pipefail
 repo="$(basename "$PWD")"
 zip_name="${ZIP_NAME:-$(printf '%s' "$repo" | tr '[:upper:]' '[:lower:]')-latest.zip}"
 archive_list="${ARCHIVE_LIST:-/tmp/openclaw-plugin-archive-files.txt}"
-deny_re='(^|/)(tag\.sh|\.env|\.calenv|\.gmail-oauth-client\.json|\.gmail-token.*\.json|\.venv|node_modules|__pycache__|logs|LOGS|state|REPORTS)(/|$)|(\.pyc|\.sqlite3)$'
+dev_only_re='(^|/)tag\.sh$'
+candidate_list="$(mktemp)"
 include_list="$(mktemp)"
-trap 'rm -f "$include_list"' EXIT
+ignored_list="$(mktemp)"
+leak_list="$(mktemp)"
+trap 'rm -f "$candidate_list" "$include_list" "$ignored_list" "$leak_list"' EXIT
 
 case "$repo" in
   DAILYNEWS) files=(README.md config.json openclaw.plugin.json package.json requirements.txt index.js generate.py scripts skills) ;;
@@ -24,14 +27,23 @@ for path in "${files[@]}"; do
   else
     printf '%s\n' "$path"
   fi
-done | grep -Ev "$deny_re" > "$include_list"
+done | grep -Ev "$dev_only_re" > "$candidate_list"
 for optional in env.example config.conf_example; do
-  [ -f "$optional" ] && printf '%s\n' "$optional" >> "$include_list"
+  [ -f "$optional" ] && printf '%s\n' "$optional" >> "$candidate_list"
 done
+git check-ignore --no-index --stdin < "$candidate_list" > "$ignored_list" || true
+grep -vxF -f "$ignored_list" "$candidate_list" > "$include_list"
 zip -q "$zip_name" -@ < "$include_list"
 sha256sum "$zip_name" > "$zip_name.sha256"
 zipinfo -1 "$zip_name" | tee "$archive_list"
-if grep -E "$deny_re" "$archive_list"; then
-  echo "Refusing to publish archive with dev helper, generated state, secrets, cache, or database files." >&2
+if grep -E "$dev_only_re" "$archive_list" > "$leak_list"; then
+  cat "$leak_list"
+  echo "Refusing to publish archive with dev-only files." >&2
+  exit 1
+fi
+git check-ignore --no-index --stdin < "$archive_list" > "$leak_list" || true
+if [ -s "$leak_list" ]; then
+  cat "$leak_list"
+  echo "Refusing to publish archive with files ignored by .gitignore." >&2
   exit 1
 fi
