@@ -37,25 +37,7 @@ jobs:
         run: bash scripts/check.sh
 
       - name: Build plugin archive
-        run: |
-          set -euo pipefail
-          rm -f "$ZIP_NAME" "$ZIP_NAME.sha256"
-          zip -qr "$ZIP_NAME" \
-            README.md provider.conf ZEROINBOX_init.sh openclaw.plugin.json package.json requirements.txt \
-            index.js scripts skills zeroinbox
-          for optional in env.example config.conf_example; do
-            [ -f "$optional" ] && zip -q "$ZIP_NAME" "$optional"
-          done
-          sha256sum "$ZIP_NAME" > "$ZIP_NAME.sha256"
-
-      - name: Inspect archive
-        run: |
-          set -euo pipefail
-          zipinfo -1 "$ZIP_NAME" | tee /tmp/archive-files.txt
-          if grep -E '(^|/)(tag\.sh|\.env|\.calenv|\.gmail-oauth-client\.json|\.gmail-token.*\.json|\.venv|node_modules|__pycache__|logs|LOGS|state|REPORTS)(/|$)|(\.pyc|\.sqlite3)$' /tmp/archive-files.txt; then
-            echo "Refusing to publish archive with generated state, secrets, cache, or database files." >&2
-            exit 1
-          fi
+        run: bash ./openclaw_plugin_zip.sh
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
