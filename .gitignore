@@ -10,3 +10,4 @@ state/
 REPORTS/
 config.sh
 python_header.py
+.tag
