@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from typing import Any
 
 from .config import resolve_model
 from .models import Decision, Destination, MailSummary
+from python_header import openai_v1_client, openai_v1_first_provider, openai_v1_provider_for_model
 
 
 def destination_list(account: dict[str, Any]) -> list[Destination]:
@@ -99,72 +99,40 @@ def normalize_decision(payload: dict[str, Any], account: dict[str, Any]) -> Deci
     )
 
 
-def litellm_kwargs() -> dict[str, str]:
-    kwargs: dict[str, str] = {}
-    api_key = os.environ.get("LITELLM_API_KEY")
-    if api_key:
-        kwargs["api_key"] = api_key
-    base_url = os.environ.get("LITELLM_API_BASE") or os.environ.get("OPENAI_API_BASE")
-    raw_url = os.environ.get("LITELLM_URL", "").strip().rstrip("/")
-    raw_port = os.environ.get("LITELLM_PORT", "").strip()
-    if not base_url and raw_url:
-        base_url = f"{raw_url}:{raw_port}" if raw_port and ":" not in raw_url.rsplit("/", 1)[-1] else raw_url
-        if not base_url.endswith("/v1"):
-            base_url = f"{base_url}/v1"
-    if base_url:
-        kwargs["api_base"] = base_url
-    return kwargs
+def openai_v1_model(config: dict[str, Any]) -> str:
+    return resolve_model(config)
 
 
-def litellm_model(config: dict[str, Any]) -> str:
-    model = resolve_model(config)
-    if litellm_kwargs().get("api_base") and "/" in model and not model.startswith("openai/"):
-        return f"openai/{model}"
-    return model
-
-
-def litellm_configured() -> bool:
-    if os.environ.get("LITELLM_URL") or os.environ.get("LITELLM_API_BASE") or os.environ.get("OPENAI_API_BASE"):
-        return True
-    key_names = (
-        "LITELLM_API_KEY",
-        "OPENAI_API_KEY",
-        "OPENAI_ADMIN_KEY",
-        "ANTHROPIC_API_KEY",
-        "GOOGLE_API_KEY",
-        "GEMINI_API_KEY",
-        "MISTRAL_API_KEY",
-        "GROQ_API_KEY",
-        "XAI_API_KEY",
-        "OPENROUTER_API_KEY",
-        "DEEPSEEK_API_KEY",
-        "AZURE_API_KEY",
-    )
-    return any(os.environ.get(name) for name in key_names)
+def openai_v1_configured() -> bool:
+    return openai_v1_first_provider() is not None
 
 
 def ensure_classifier_ready(config: dict[str, Any], classifier: str | None = None) -> None:
-    mode = (classifier or str(config.get("classifier") or "litellm")).strip().lower()
-    if mode == "rules" or litellm_configured():
+    mode = (classifier or str(config.get("classifier") or "openai_v1")).strip().lower()
+    if mode == "rules" or openai_v1_configured():
         return
     raise RuntimeError(
-        "LiteLLM credentials are missing. Set OPENAI_API_KEY, LITELLM_API_KEY/LITELLM_URL, "
+        "OpenAI v1 endpoint is missing. Set OPENAI_V1_URL, OPENAI_V1_PORT, OPENAI_V1_KEY, "
         "or run with --classifier rules for a non-LLM mechanics test."
     )
 
 
-def classify_litellm(config: dict[str, Any], account: dict[str, Any], mail: MailSummary) -> Decision:
-    ensure_classifier_ready(config, "litellm")
-    import litellm
+def classify_openai_v1(config: dict[str, Any], account: dict[str, Any], mail: MailSummary) -> Decision:
+    ensure_classifier_ready(config, "openai_v1")
+    model = openai_v1_model(config)
+    provider = openai_v1_provider_for_model(model)
+    if provider is None:
+        raise RuntimeError("OPENAI_V1_URL is not configured.")
 
-    response = litellm.completion(
-        model=litellm_model(config),
+    response = openai_v1_client(provider, timeout=120.0).chat.completions.create(
+        model=model,
         messages=[{"role": "user", "content": build_prompt(config, account, mail)}],
-        stream=False,
         temperature=0,
-        **litellm_kwargs(),
     )
-    raw = response.choices[0].message.content.strip()
+    content = response.choices[0].message.content
+    if isinstance(content, list):
+        content = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
+    raw = (content or "").strip()
     return normalize_decision(parse_json_object(raw), account)
 
 
@@ -187,7 +155,7 @@ def classify_rules(account: dict[str, Any], mail: MailSummary) -> Decision:
 
 
 def classify(config: dict[str, Any], account: dict[str, Any], mail: MailSummary, classifier: str | None = None) -> Decision:
-    mode = (classifier or str(config.get("classifier") or "litellm")).strip().lower()
+    mode = (classifier or str(config.get("classifier") or "openai_v1")).strip().lower()
     if mode == "rules":
         return classify_rules(account, mail)
-    return classify_litellm(config, account, mail)
+    return classify_openai_v1(config, account, mail)

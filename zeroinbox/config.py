@@ -285,7 +285,7 @@ def load_config(report_dir: Path | None = None) -> dict[str, Any]:
     return {
         "defaultAccount": default_account,
         "defaultModel": env("ZEROINBOX_MODEL", "gemini/gemini-flash-lite-latest"),
-        "classifier": "litellm",
+        "classifier": "openai_v1",
         "accounts": accounts,
         "rules": static.get("rules") if isinstance(static.get("rules"), list) else [],
         "_baseDir": str(ROOT_DIR),

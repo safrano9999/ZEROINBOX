@@ -6,17 +6,17 @@
 [`zeroinbox-latest.zip`](https://github.com/safrano9999/ZEROINBOX/releases/download/latest/zeroinbox-latest.zip)
 · [`.sha256`](https://github.com/safrano9999/ZEROINBOX/releases/download/latest/zeroinbox-latest.zip.sha256)
 
-OpenClaw-ready IMAP mail sorter with LiteLLM classification and PDF reports.
+OpenClaw-ready IMAP mail sorter with OpenAI-v1 classification and PDF reports.
 
 Runtime code lives in the repository root. The OpenClaw plugin starts the
 Python CLI directly; OpenClaw does not classify mails and does not touch the
-LiteLLM decision logic.
+OpenAI-v1 decision logic.
 
 ## What It Does
 
 - reads IMAP mail from the configured account
 - checks all configured accounts/mailboxes in the normal sort flow
-- classifies matching messages with `litellm.completion(...)`
+- classifies matching messages with the official OpenAI Python client
 - moves messages into configured folders when run with `--commit`
 - writes JSONL decisions to `logs/`
 - writes a PDF report to `REPORTS/` on bare metal
@@ -94,12 +94,12 @@ ZEROINBOX_EMAIL=dummy@example.com
 ZEROINBOX_APP_PASSWORD=xxxxxxxxxxxxxxxx
 ```
 
-LiteLLM is called by ZEROINBOX itself. For the local LiteLLM proxy:
+OpenAI-v1 classification is called by ZEROINBOX itself. For a local compatible proxy:
 
 ```env
-LITELLM_API_KEY=...
-LITELLM_URL=https://forky.tailb13f39.ts.net
-LITELLM_PORT=888
+OPENAI_V1_KEY=...
+OPENAI_V1_URL=https://forky.tailb13f39.ts.net
+OPENAI_V1_PORT=888
 ```
 
 Known providers are read from `provider.conf`; currently `gmail` and `icloud`.

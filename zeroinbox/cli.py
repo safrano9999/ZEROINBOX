@@ -29,14 +29,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_sort.add_argument("--account", default=None)
     p_sort.add_argument("--dry-run", action="store_true")
     p_sort.add_argument("--commit", action="store_true", help="Actually move messages")
-    p_sort.add_argument("--classifier", choices=["litellm", "rules"], default=None)
+    p_sort.add_argument("--classifier", choices=["openai_v1", "rules"], default=None)
 
     p_classify = sub.add_parser("classify-test", help="Classify supplied text without IMAP")
     p_classify.add_argument("--account", default=None)
     p_classify.add_argument("--subject", default="")
     p_classify.add_argument("--from", dest="sender", default="")
     p_classify.add_argument("--body", default="")
-    p_classify.add_argument("--classifier", choices=["litellm", "rules"], default="rules")
+    p_classify.add_argument("--classifier", choices=["openai_v1", "rules"], default="rules")
 
     p_config = sub.add_parser("config", help="Show sanitized config summary")
     p_config.add_argument("--account", default=None)

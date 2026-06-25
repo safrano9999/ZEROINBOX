@@ -150,7 +150,7 @@ function runtimeEnv() {
   const picked = {};
   for (const source of [readProcEnv(), process.env]) {
     for (const [key, value] of Object.entries(source)) {
-      if (/^(ZEROINBOX|LITELLM)_/.test(key)) {
+      if (/^(ZEROINBOX|OPENAI_V1)_/.test(key)) {
         picked[key] = value;
       }
     }
@@ -376,7 +376,7 @@ function registerWebhook(api) {
 export default definePluginEntry({
   id: "zeroinbox",
   name: "ZEROINBOX",
-  description: "Standalone IMAP and LiteLLM mail sorter with a /zeroinbox command.",
+  description: "Standalone IMAP and OpenAI-v1 mail sorter with a /zeroinbox command.",
   configSchema,
   register(api) {
     api.registerTool((ctx) => createTool(ctx), { names: ["zeroinbox_run"] });
