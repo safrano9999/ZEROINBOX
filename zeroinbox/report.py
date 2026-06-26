@@ -89,7 +89,7 @@ def write_pdf_report(
         timestamp = datetime.strptime(run_id, "%Y%m%d-%H%M%S").strftime("%Y-%m-%d_%H-%M-%S")
     except ValueError:
         timestamp = run_id
-    model = os.environ.get("ZEROINBOX_MODEL") or str(config.get("defaultModel") or "")
+    model = os.environ.get("ZEROINBOX_OPENAI_V1_DEFAULT_LLM") or str(config.get("defaultModel") or "")
     total = len(results)
     elems: list[Any] = []
 

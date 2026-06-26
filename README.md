@@ -97,6 +97,8 @@ ZEROINBOX_APP_PASSWORD=xxxxxxxxxxxxxxxx
 OpenAI-v1 classification is called by ZEROINBOX itself. For a local compatible proxy:
 
 ```env
+ZEROINBOX_OPENAI_V1_DEFAULT_LLM=gemini/gemini-flash-lite-latest
+OPENAI_V1_PROVIDER=
 OPENAI_V1_KEY=...
 OPENAI_V1_URL=https://forky.tailb13f39.ts.net
 OPENAI_V1_PORT=888

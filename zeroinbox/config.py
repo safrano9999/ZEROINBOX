@@ -284,7 +284,7 @@ def load_config(report_dir: Path | None = None) -> dict[str, Any]:
 
     return {
         "defaultAccount": default_account,
-        "defaultModel": env("ZEROINBOX_MODEL", "gemini/gemini-flash-lite-latest"),
+        "defaultModel": env("ZEROINBOX_OPENAI_V1_DEFAULT_LLM", "gemini/gemini-flash-lite-latest"),
         "classifier": "openai_v1",
         "accounts": accounts,
         "rules": static.get("rules") if isinstance(static.get("rules"), list) else [],
@@ -365,7 +365,7 @@ def resolve_secret(account: dict[str, Any], key: str) -> str:
 
 
 def resolve_model(config: dict[str, Any]) -> str:
-    return os.environ.get("ZEROINBOX_MODEL") or str(config.get("defaultModel") or "gpt-4o-mini")
+    return os.environ.get("ZEROINBOX_OPENAI_V1_DEFAULT_LLM") or str(config.get("defaultModel") or "gpt-4o-mini")
 
 
 def log_dir(config: dict[str, Any]) -> Path:
