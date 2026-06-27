@@ -16,6 +16,7 @@ case "$repo" in
   CALENDAR) files=(README.md CALENDAR_init.sh calendar_fetch.py config.json openclaw.plugin.json package.json requirements.txt index.js scripts) ;;
   ZEROINBOX) files=(README.md provider.conf ZEROINBOX_init.sh openclaw.plugin.json package.json requirements.txt index.js scripts skills zeroinbox) ;;
   KACHELMANN) files=(README.md config.json openclaw.plugin.json package.json requirements.txt requirements-mysql.txt requirements-postgres.txt index.js scripts kachelmann static templates webui.py) ;;
+  SPANKER) files=(README.md assets openclaw.plugin.json package.json requirements.txt index.js scripts spanker) ;;
   *) echo "Unsupported OpenClaw plugin repo: $repo" >&2; exit 2 ;;
 esac
 
