@@ -15,8 +15,9 @@ case "$repo" in
   DAILYNEWS) files=(README.md config.json openclaw.plugin.json package.json requirements.txt index.js generate.py scripts skills) ;;
   CALENDAR) files=(README.md CALENDAR_init.sh calendar_fetch.py config.json openclaw.plugin.json package.json requirements.txt index.js scripts) ;;
   ZEROINBOX) files=(README.md provider.conf ZEROINBOX_init.sh openclaw.plugin.json package.json requirements.txt index.js scripts skills zeroinbox) ;;
-  KACHELMANN) files=(README.md config.json openclaw.plugin.json package.json requirements.txt requirements-mysql.txt requirements-postgres.txt index.js scripts kachelmann static templates webui.py) ;;
-  SPANKER) files=(README.md assets openclaw.plugin.json package.json requirements.txt index.js scripts spanker) ;;
+  CITADEL) files=(README.md CITADEL_CLOUDFLARE.md CITADEL.png citadel.svg config.ini.example openclaw.plugin.json package.json requirements.txt index.js python_header.py scan.sh set_daemon.sh webui.py assets extensions functions skills templates tests) ;;
+  KACHELMANN) files=(README.md config.json openclaw.plugin.json package.json requirements.txt requirements-mysql.txt requirements-postgres.txt index.js scripts systemd kachelmann static templates webui.py) ;;
+  SPANKER) files=(README.md assets openclaw.plugin.json package.json requirements.txt index.js scripts systemd spanker) ;;
   *) echo "Unsupported OpenClaw plugin repo: $repo" >&2; exit 2 ;;
 esac
 
