@@ -107,25 +107,6 @@ function readPluginConfig(ctx) {
   return isRecord(entry?.config) ? entry.config : {};
 }
 
-function readRuntimeConfig(ctx) {
-  return ctx.getRuntimeConfig?.() ?? ctx.runtimeConfig ?? ctx.config ?? {};
-}
-
-function resolveAgentWorkspaceDir(config, agentId = "main") {
-  const agents = isRecord(config?.agents) ? config.agents : {};
-  const list = Array.isArray(agents.list) ? agents.list : [];
-  const entry = list.find((item) => isRecord(item) && item.id === agentId);
-  return (isRecord(entry) ? readString(entry.workspace) : undefined)
-    ?? (isRecord(agents.defaults) ? readString(agents.defaults.workspace) : undefined);
-}
-
-function resolveReportDir(ctx) {
-  const workspace = readString(ctx?.workspaceDir)
-    ?? resolveAgentWorkspaceDir(readRuntimeConfig(ctx))
-    ?? readString(process.env.OPENCLAW_WORKSPACE_DIR);
-  return workspace ? path.resolve(expandHome(workspace), "ZEROINBOX") : undefined;
-}
-
 function resolvePath(rawPath, baseDir) {
   const expanded = expandHome(rawPath);
   return path.isAbsolute(expanded) ? expanded : path.resolve(baseDir, expanded);
@@ -236,14 +217,9 @@ async function runZeroinbox(ctx, params, signal) {
   const cfg = readPluginConfig(ctx);
   const raw = readString(params.raw) ?? readString(cfg.defaultArgs) ?? "sort --commit";
   const python = await resolvePython(ctx, signal);
-  const reportDir = resolveReportDir(ctx);
   const result = await runProcess(
     python,
-    [
-      "-m", "zeroinbox.cli",
-      ...(reportDir ? ["--report-dir", reportDir] : []),
-      "--json", "--raw", raw,
-    ],
+    ["-m", "zeroinbox.cli", "--json", "--raw", raw],
     {
       cwd: pluginRoot,
       signal,

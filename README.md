@@ -20,7 +20,7 @@ OpenAI-v1 decision logic.
 - moves messages into configured folders when run with `--commit`
 - writes JSONL decisions to `logs/`
 - writes a PDF report to `REPORTS/` on bare metal
-- writes OpenClaw reports to the allowed agent workspace under `ZEROINBOX/`
+- writes reports to `REPORTS/` relative to the ZEROINBOX directory
 
 The PDF keeps the known ZEROINBOX layout: colored overview first, then one page
 per processed email.
