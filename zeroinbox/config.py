@@ -161,6 +161,10 @@ def indexed_env(base: str, suffix: str = "", default: str = "") -> str:
     return env(suffix_key(base, suffix), default)
 
 
+def account_search(suffix: str) -> str:
+    return "UNSEEN" if parse_bool(indexed_env("ONLY_UNSEEN", suffix, "1"), True) else "ALL"
+
+
 def provider_env(provider_name: str, field: str, default: str = "") -> str:
     token = re.sub(r"[^A-Za-z0-9]+", "_", provider_name.upper()).strip("_")
     return env(f"ZEROINBOX_PROVIDER_{token}_{field}", default)
@@ -212,7 +216,7 @@ def build_known_provider_account(
         "usernameEnv": suffix_key("EMAIL", suffix),
         "passwordEnv": indexed_password_env(suffix),
         "inbox": indexed_env("INBOX", suffix, str(provider.get("inbox") or "INBOX")),
-        "search": indexed_env("SEARCH", suffix, str(provider.get("search") or "UNSEEN")),
+        "search": account_search(suffix),
         "createMissingFolders": parse_bool(
             indexed_env("CREATE_MISSING_FOLDERS", suffix, str(provider.get("createMissingFolders", True))),
             True,
@@ -249,7 +253,7 @@ def build_dynamic_provider_account(static: dict[str, Any], suffix: str, provider
         "usernameEnv": suffix_key("EMAIL", suffix),
         "passwordEnv": indexed_password_env(suffix),
         "inbox": indexed_env("INBOX", suffix, provider_env(provider_name, "INBOX", "INBOX")),
-        "search": indexed_env("SEARCH", suffix, provider_env(provider_name, "SEARCH", "UNSEEN")),
+        "search": account_search(suffix),
         "createMissingFolders": parse_bool(
             indexed_env("CREATE_MISSING_FOLDERS", suffix, provider_env(provider_name, "CREATE_MISSING_FOLDERS", "true")),
             True,

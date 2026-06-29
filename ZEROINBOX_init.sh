@@ -3,6 +3,7 @@
 
 This script is intentionally only about account config:
 - provider/mail address/password go to .env
+- account behavior goes to config.conf
 - custom provider connection values also go to .env
 - folder/label creation is handled separately by scripts/gmail-init-labels
 """
@@ -17,6 +18,7 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
 ENV_PATH = ROOT_DIR / ".env"
+CONFIG_PATH = ROOT_DIR / "config.conf"
 
 
 def ask(question: str, default: str = "") -> str:
@@ -167,7 +169,6 @@ def custom_provider_updates(env: dict[str, str], provider: str) -> dict[str, str
         f"{prefix}_URL": host,
         f"{prefix}_PORT": ask("IMAP port", "993"),
         f"{prefix}_INBOX": ask("Inbox folder", "INBOX"),
-        f"{prefix}_SEARCH": ask("IMAP search", "UNSEEN"),
         f"{prefix}_ARCHIVE_PREFIX": ask("Archive prefix", "ZEROINBOX/Archiv"),
         f"{prefix}_CREATE_MISSING_FOLDERS": "true",
         f"{prefix}_EXPUNGE_AFTER_MOVE": "true",
@@ -187,6 +188,7 @@ def add_account() -> None:
     password = getpass.getpass("App password / IMAP password: ").strip().replace(" ", "")
     if not password:
         raise SystemExit("Password required.")
+    only_unseen = ask_choice("Only unseen messages", ("1", "0"), "1")
 
     env_updates.update(
         {
@@ -200,7 +202,10 @@ def add_account() -> None:
         env_updates,
         0o600,
     )
+    only_unseen_key = env_key("ONLY_UNSEEN", suffix)
+    upsert_kv(CONFIG_PATH, {only_unseen_key: only_unseen})
     print(f"Wrote {provider_key(suffix)}, {env_key('EMAIL', suffix)} and {env_key('APP_PASSWORD', suffix)} to {ENV_PATH}.")
+    print(f"Wrote {only_unseen_key} to {CONFIG_PATH}.")
 
 
 def main() -> int:
