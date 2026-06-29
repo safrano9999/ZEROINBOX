@@ -8,5 +8,4 @@ __pycache__/
 logs/
 state/
 REPORTS/
-config.sh
 .tag
