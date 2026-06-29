@@ -284,7 +284,7 @@ def load_config(report_dir: Path | None = None) -> dict[str, Any]:
 
     return {
         "defaultAccount": default_account,
-        "defaultModel": env("ZEROINBOX_OPENAI_V1_DEFAULT_LLM", "gemini/gemini-flash-lite-latest"),
+        "defaultModel": env("ZEROINBOX_OPENAI_V1_DEFAULT_LLM", "gemini-flash-lite-latest"),
         "classifier": "openai_v1",
         "accounts": accounts,
         "rules": static.get("rules") if isinstance(static.get("rules"), list) else [],
