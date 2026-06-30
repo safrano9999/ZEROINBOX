@@ -1,3 +1,15 @@
 #repeat-group: ZEROINBOX suffix ZEROINBOX_ONLY_UNSEEN
 #default-preset: 1
 ZEROINBOX_ONLY_UNSEEN=1
+
+#named-volume: /named_volumes/ZEROINBOX_REPORTS /named_volumes/ZEROINBOX_REPORTS /root/.openclaw/extensions/zeroinbox/REPORTS
+#default-preset: 1
+ZEROINBOX_REPORTS_VOLUME=1
+
+#named-volume: /named_volumes/ZEROINBOX_LOGS /named_volumes/ZEROINBOX_LOGS /root/.openclaw/extensions/zeroinbox/logs
+#default-preset: 1
+ZEROINBOX_LOGS_VOLUME=1
+
+#named-volume: /named_volumes/ZEROINBOX_MAILDIR /named_volumes/ZEROINBOX_MAILDIR /root/.openclaw/extensions/zeroinbox/maildir
+#default-preset: 1
+ZEROINBOX_MAILDIR_VOLUME=1
