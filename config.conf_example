@@ -2,14 +2,14 @@
 #default-preset: 1
 ZEROINBOX_ONLY_UNSEEN=1
 
-#named-volume: /named_volumes/ZEROINBOX /named_volumes/ZEROINBOX/REPORTS /opt/safrano9999/ZEROINBOX/REPORTS dir
+#named-volume: /named_volumes/ZEROINBOX /named_volumes/ZEROINBOX/REPORTS @ZEROINBOX_DIR@/REPORTS dir
 #default-preset: 1
 ZEROINBOX_REPORTS_VOLUME=1
 
-#named-volume: /named_volumes/ZEROINBOX /named_volumes/ZEROINBOX/logs /opt/safrano9999/ZEROINBOX/logs dir
+#named-volume: /named_volumes/ZEROINBOX /named_volumes/ZEROINBOX/logs @ZEROINBOX_DIR@/logs dir
 #default-preset: 1
 ZEROINBOX_LOGS_VOLUME=1
 
-#named-volume: /named_volumes/ZEROINBOX /named_volumes/ZEROINBOX/maildir /opt/safrano9999/ZEROINBOX/maildir dir
+#named-volume: /named_volumes/ZEROINBOX /named_volumes/ZEROINBOX/maildir @ZEROINBOX_DIR@/maildir dir
 #default-preset: 1
 ZEROINBOX_MAILDIR_VOLUME=1
