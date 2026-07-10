@@ -30,6 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_sort.add_argument("--dry-run", action="store_true")
     p_sort.add_argument("--commit", action="store_true", help="Actually move messages")
     p_sort.add_argument("--classifier", choices=["openai_v1", "rules"], default=None)
+    p_sort.add_argument("--limit", type=int, default=0, help="Maximum messages to process per mailbox")
 
     p_classify = sub.add_parser("classify-test", help="Classify supplied text without IMAP")
     p_classify.add_argument("--account", default=None)
@@ -139,7 +140,7 @@ def command_payload(args: argparse.Namespace) -> dict[str, Any]:
         dry_run = bool(args.dry_run)
         if args.commit:
             dry_run = False
-        payload = sort_mail(config, args.account, dry_run, args.classifier)
+        payload = sort_mail(config, args.account, dry_run, args.classifier, args.limit)
         payload["kind"] = "sort"
         return payload
     if command == "classify-test":

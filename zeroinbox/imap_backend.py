@@ -10,6 +10,10 @@ from .config import resolve_secret
 from .models import MailSummary
 
 
+class MissingImapMessage(RuntimeError):
+    pass
+
+
 def quote_mailbox(value: str) -> str:
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     return f'"{escaped}"'
@@ -108,7 +112,7 @@ class ImapAccount(AbstractContextManager["ImapAccount"]):
         for item in data:
             if isinstance(item, tuple) and isinstance(item[1], bytes):
                 return parse_message(uid, item[1])
-        raise RuntimeError(f"IMAP fetch returned no message for UID {uid}.")
+        raise MissingImapMessage(f"IMAP fetch returned no message for UID {uid}.")
 
     def ensure_mailbox(self, mailbox: str) -> None:
         if not self.account.get("createMissingFolders", True):

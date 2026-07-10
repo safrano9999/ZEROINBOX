@@ -7,7 +7,7 @@ from typing import Any
 
 from .classifier import classify, destination_map, ensure_classifier_ready
 from .config import account_config, log_dir, mailbox_accounts
-from .imap_backend import ImapAccount
+from .imap_backend import ImapAccount, MissingImapMessage
 from .models import MailSummary, SortResult
 from .report import write_pdf_report
 
@@ -67,6 +67,7 @@ def sort_one_mailbox(
     dry_run: bool,
     classifier: str | None,
     run_id: str,
+    limit: int = 0,
 ) -> dict[str, Any]:
     destinations = destination_map(account)
     records: list[dict[str, Any]] = []
@@ -75,10 +76,15 @@ def sort_one_mailbox(
 
     with ImapAccount(account) as imap:
         uids = imap.search_uids()
+        if limit > 0:
+            uids = uids[:limit]
         if uids:
             ensure_classifier_ready(config, classifier)
         for uid in uids:
-            mail = imap.fetch_message(uid)
+            try:
+                mail = imap.fetch_message(uid)
+            except MissingImapMessage:
+                continue
             decision = classify(config, account, mail, classifier)
             dest = destinations[decision.destination]
             action = "dry-run"
@@ -86,6 +92,7 @@ def sort_one_mailbox(
                 imap.move_uid(uid, dest.mailbox)
                 action = "moved"
                 moved += 1
+                imap.expunge()
             result = SortResult(
                 uid=uid,
                 subject=mail.subject,
@@ -105,9 +112,6 @@ def sort_one_mailbox(
             record["sourceAccount"] = record.pop("source_account")
             record["sourceMailbox"] = record.pop("source_mailbox")
             records.append(record)
-        if moved:
-            imap.expunge()
-
     return {
         "account": account["name"],
         "mailbox": str(account.get("inbox") or "INBOX"),
@@ -122,7 +126,13 @@ def sort_one_mailbox(
     }
 
 
-def sort_mail(config: dict[str, Any], account_name: str | None, dry_run: bool, classifier: str | None) -> dict[str, Any]:
+def sort_mail(
+    config: dict[str, Any],
+    account_name: str | None,
+    dry_run: bool,
+    classifier: str | None,
+    limit: int = 0,
+) -> dict[str, Any]:
     accounts = mailbox_accounts(config, account_name)
     if not accounts:
         raise ValueError("No ZEROINBOX accounts configured.")
@@ -132,7 +142,7 @@ def sort_mail(config: dict[str, Any], account_name: str | None, dry_run: bool, c
     sort_results: list[SortResult] = []
     moved = 0
     for account in accounts:
-        payload = sort_one_mailbox(config, account, dry_run, classifier, run_id)
+        payload = sort_one_mailbox(config, account, dry_run, classifier, run_id, limit)
         mailbox_payloads.append(payload)
         records.extend(payload["records"])
         sort_results.extend(payload["_sortResults"])

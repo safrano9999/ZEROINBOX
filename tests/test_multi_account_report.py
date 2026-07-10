@@ -97,6 +97,7 @@ class MultiAccountReportTests(unittest.TestCase):
                 payload = sort_mail({"_baseDir": tmp}, None, False, None)
 
         self.assertEqual([call.args[1]["name"] for call in sort_one.call_args_list], ["gmail", "gmail_2", "icloud_3"])
+        self.assertEqual([call.args[5] for call in sort_one.call_args_list], [0, 0, 0])
         self.assertEqual(payload["seen"], 2)
         self.assertEqual(payload["moved"], 2)
         self.assertEqual([item["seen"] for item in payload["mailboxes"]], [1, 0, 1])
