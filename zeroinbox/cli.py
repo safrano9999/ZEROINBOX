@@ -62,8 +62,9 @@ def render_sort(payload: dict[str, Any]) -> str:
         if payload["seen"] == 0:
             return "\n".join(f"✅ {item.get('target')}: no new mails, nothing to do." for item in empty)
         mode = "dry-run" if payload["dryRun"] else "commit"
+        moved = int(payload["moved"])
         lines = [
-            f"ZEROINBOX: {payload['seen']} Mails verarbeitet ({mode}), {payload['moved']} verschoben.",
+            f"ZEROINBOX: {moved} Mails verschoben, {payload['seen']} verarbeitet ({mode}).",
         ]
         lines.extend(
             f"- {item.get('target')}: {item.get('seen')} Mails, {item.get('moved')} verschoben"
@@ -85,8 +86,9 @@ def render_sort(payload: dict[str, Any]) -> str:
     if payload["seen"] == 0:
         return f"✅ ZEROINBOX {target}: no new mails, nothing to do."
     mode = "dry-run" if payload["dryRun"] else "commit"
+    moved = int(payload["moved"])
     lines = [
-        f"ZEROINBOX {target}: {payload['seen']} Mails verarbeitet ({mode}), {payload['moved']} verschoben.",
+        f"ZEROINBOX {target}: {moved} Mails verschoben, {payload['seen']} verarbeitet ({mode}).",
     ]
     for item in payload["results"][:10]:
         lines.append(
