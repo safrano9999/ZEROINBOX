@@ -17,6 +17,7 @@ class MailSummary:
     sender: str
     date: str
     body: str
+    received_at: str = ""
 
 
 @dataclass(frozen=True)
@@ -41,3 +42,5 @@ class SortResult:
     action: str
     source_account: str = ""
     source_mailbox: str = ""
+    source_address: str = ""
+    received_at: str = ""

@@ -41,7 +41,7 @@ def decode_body(msg: email.message.EmailMessage) -> str:
     return "\n\n".join(parts)[:4000]
 
 
-def parse_message(uid: str, raw: bytes) -> MailSummary:
+def parse_message(uid: str, raw: bytes, received_at: str = "") -> MailSummary:
     msg = email.message_from_bytes(raw, policy=email.policy.default)
     return MailSummary(
         uid=uid,
@@ -49,6 +49,24 @@ def parse_message(uid: str, raw: bytes) -> MailSummary:
         sender=str(msg.get("From", "")),
         date=str(msg.get("Date", "")),
         body=decode_body(msg),
+        received_at=received_at,
+    )
+
+
+def parse_internal_date(metadata: object) -> str:
+    if not isinstance(metadata, bytes):
+        return ""
+    match = imaplib.InternalDate.match(metadata)
+    if match is None:
+        return ""
+    values = {
+        key: value.decode("ascii", errors="replace")
+        for key, value in match.groupdict().items()
+    }
+    return (
+        f"{values['day'].strip()}-{values['mon']}-{values['year']} "
+        f"{values['hour']}:{values['min']}:{values['sec']} "
+        f"{values['zonen']}{values['zoneh']}{values['zonem']}"
     )
 
 
@@ -106,12 +124,12 @@ class ImapAccount(AbstractContextManager["ImapAccount"]):
 
     def fetch_message(self, uid: str) -> MailSummary:
         # BODY.PEEK[] fetches the message body without setting Gmail's \Seen flag.
-        status, data = self.imap.uid("FETCH", uid, "(BODY.PEEK[])")
+        status, data = self.imap.uid("FETCH", uid, "(INTERNALDATE BODY.PEEK[])")
         if status != "OK":
             raise RuntimeError(f"IMAP fetch failed for UID {uid}: {data}")
         for item in data:
             if isinstance(item, tuple) and isinstance(item[1], bytes):
-                return parse_message(uid, item[1])
+                return parse_message(uid, item[1], parse_internal_date(item[0]))
         raise MissingImapMessage(f"IMAP fetch returned no message for UID {uid}.")
 
     def ensure_mailbox(self, mailbox: str) -> None:

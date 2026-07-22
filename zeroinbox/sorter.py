@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .classifier import classify, destination_map, ensure_classifier_ready
-from .config import account_config, log_dir, mailbox_accounts
+from .config import account_config, log_dir, mailbox_accounts, resolve_secret
 from .imap_backend import ImapAccount, MissingImapMessage
 from .models import MailSummary, SortResult
 from .report import write_pdf_report
@@ -106,6 +106,8 @@ def sort_one_mailbox(
                 action=action,
                 source_account=account["name"],
                 source_mailbox=str(account.get("inbox") or "INBOX"),
+                source_address=resolve_secret(account, "username"),
+                received_at=mail.received_at,
             )
             results.append(result)
             record = dict(result.__dict__)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,16 @@ DEFAULT_DEST_COLOR = "#1a2b4a"
 def _he(value: object) -> str:
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", str(value or ""))
     return escape(text)
+
+
+def _received_label(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "unknown"
+    try:
+        return parsedate_to_datetime(raw).strftime("%d.%m.%Y %H:%M")
+    except (TypeError, ValueError):
+        return raw
 
 
 def report_dir(config: dict[str, Any]) -> Path:
@@ -84,6 +95,13 @@ def write_pdf_report(
         "badge", fontName="Helvetica-Bold", fontSize=12, textColor=white, leading=16, alignment=TA_CENTER
     )
     mono_style = style("mono", fontName="Courier", fontSize=9, textColor=HexColor("#475569"), leading=13)
+    list_meta_style = style(
+        "list_meta",
+        fontName="Helvetica",
+        fontSize=7,
+        textColor=mid,
+        leading=9,
+    )
 
     try:
         timestamp = datetime.strptime(run_id, "%Y%m%d-%H%M%S").strftime("%Y-%m-%d_%H-%M-%S")
@@ -195,7 +213,6 @@ def write_pdf_report(
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ALIGN", (0, 0), (0, -1), "CENTER"),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.25, HexColor("#e2e8f0")),
     ]
     for index, result in enumerate(results):
         row_background = white if index % 2 == 0 else light
@@ -208,6 +225,7 @@ def write_pdf_report(
             leading=11,
             alignment=TA_CENTER,
         )
+        main_row = len(list_rows)
         list_rows.append(
             [
                 Paragraph(str(index + 1), body_style),
@@ -216,8 +234,35 @@ def write_pdf_report(
                 Paragraph(result.destination.upper(), destination_style),
             ]
         )
-        list_style.append(("BACKGROUND", (0, index + 1), (2, index + 1), row_background))
-        list_style.append(("BACKGROUND", (3, index + 1), (3, index + 1), HexColor(destination_color)))
+        meta_row = len(list_rows)
+        received = _received_label(result.received_at or result.date)
+        mailbox = result.source_address or result.source_account
+        list_rows.append(
+            [
+                "",
+                Paragraph(
+                    f"<b>Received</b> {_he(received)} &nbsp;&nbsp;|&nbsp;&nbsp; "
+                    f"<b>Mailbox</b> {_he(mailbox)}",
+                    list_meta_style,
+                ),
+                "",
+                "",
+            ]
+        )
+        list_style.extend(
+            [
+                ("BACKGROUND", (0, main_row), (2, main_row), row_background),
+                ("BACKGROUND", (3, main_row), (3, main_row), HexColor(destination_color)),
+                ("BACKGROUND", (0, meta_row), (3, meta_row), row_background),
+                ("SPAN", (1, meta_row), (3, meta_row)),
+                ("TOPPADDING", (0, main_row), (-1, main_row), 5),
+                ("BOTTOMPADDING", (0, main_row), (-1, main_row), 2),
+                ("TOPPADDING", (0, meta_row), (-1, meta_row), 0),
+                ("BOTTOMPADDING", (0, meta_row), (-1, meta_row), 4),
+                ("LINEBELOW", (0, meta_row), (-1, meta_row), 0.25, HexColor("#e2e8f0")),
+                ("NOSPLIT", (0, main_row), (-1, meta_row)),
+            ]
+        )
 
     email_table = Table(list_rows, colWidths=column_widths, repeatRows=1)
     email_table.setStyle(TableStyle(list_style))
