@@ -2,6 +2,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from openai_v1_stream import openai_v1_stream_buffer
 from zeroinbox.classifier import classify_openai_v1, parse_json_object
 from zeroinbox.models import MailSummary
 
@@ -69,6 +70,14 @@ class ClassifierStreamTests(unittest.TestCase):
 
         self.assertEqual(decision.destination, "newsletter")
         self.assertEqual(decision.confidence, 0.9)
+        self.assertTrue(stream.closed)
+
+    def test_mutable_stream_buffer_is_zeroized_after_use(self):
+        stream = _Stream(["secret", " response"])
+        with openai_v1_stream_buffer(stream) as buffer:
+            retained_reference = buffer
+            self.assertEqual(bytes(buffer), b"secret response")
+        self.assertEqual(retained_reference, bytearray())
         self.assertTrue(stream.closed)
 
 

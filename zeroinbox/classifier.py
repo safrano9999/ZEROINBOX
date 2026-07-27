@@ -5,7 +5,7 @@ from typing import Any
 
 from .config import resolve_model
 from .models import Decision, Destination, MailSummary
-from openai_v1_stream import consume_openai_v1_stream
+from openai_v1_stream import openai_v1_stream_buffer
 from python_header import openai_v1_client, openai_v1_first_provider, openai_v1_provider_for_model
 
 _DECISION_KEYS = {"destination", "confidence", "summary", "reason"}
@@ -70,9 +70,11 @@ Body snippet:
 """
 
 
-def parse_json_object(raw: str) -> dict[str, Any]:
+def parse_json_object(raw: str | bytes | bytearray) -> dict[str, Any]:
     text = raw.strip()
-    if not text.startswith("{") or not text.endswith("}"):
+    opening = "{" if isinstance(text, str) else b"{"
+    closing = "}" if isinstance(text, str) else b"}"
+    if not text.startswith(opening) or not text.endswith(closing):
         raise ValueError("Classifier response is not a strict JSON object.")
 
     def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -148,7 +150,11 @@ def classify_openai_v1(config: dict[str, Any], account: dict[str, Any], mail: Ma
         stream=provider.stream,
     )
     if provider.stream:
-        raw = consume_openai_v1_stream(response)
+        with openai_v1_stream_buffer(response) as raw_buffer:
+            if not raw_buffer:
+                raise ValueError("Classifier returned no JSON content.")
+            payload = parse_json_object(raw_buffer)
+        return normalize_decision(payload, account)
     else:
         content = response.choices[0].message.content
         if isinstance(content, list):
