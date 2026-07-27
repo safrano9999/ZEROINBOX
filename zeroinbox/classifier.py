@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
-import re
 from typing import Any
 
 from .config import resolve_model
 from .models import Decision, Destination, MailSummary
+from openai_v1_stream import consume_openai_v1_stream
 from python_header import openai_v1_client, openai_v1_first_provider, openai_v1_provider_for_model
+
+_DECISION_KEYS = {"destination", "confidence", "summary", "reason"}
 
 
 def destination_list(account: dict[str, Any]) -> list[Destination]:
@@ -70,15 +72,30 @@ Body snippet:
 
 def parse_json_object(raw: str) -> dict[str, Any]:
     text = raw.strip()
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.S)
-    if fenced:
-        text = fenced.group(1)
-    if not text.startswith("{"):
-        start = text.find("{")
-        end = text.rfind("}")
-        if start >= 0 and end > start:
-            text = text[start : end + 1]
-    return json.loads(text)
+    if not text.startswith("{") or not text.endswith("}"):
+        raise ValueError("Classifier response is not a strict JSON object.")
+
+    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in payload:
+                raise ValueError("Classifier response contains a duplicate field.")
+            payload[key] = value
+        return payload
+
+    payload = json.loads(text, object_pairs_hook=reject_duplicate_keys)
+    if not isinstance(payload, dict):
+        raise ValueError("Classifier response is not a JSON object.")
+    keys = set(payload)
+    if keys != _DECISION_KEYS:
+        raise ValueError("Classifier response has unexpected or missing fields.")
+    if not isinstance(payload["destination"], str):
+        raise ValueError("Classifier destination must be a string.")
+    if isinstance(payload["confidence"], bool) or not isinstance(payload["confidence"], (int, float)):
+        raise ValueError("Classifier confidence must be a number.")
+    if not isinstance(payload["summary"], str) or not isinstance(payload["reason"], str):
+        raise ValueError("Classifier summary and reason must be strings.")
+    return payload
 
 
 def normalize_decision(payload: dict[str, Any], account: dict[str, Any]) -> Decision:
@@ -128,12 +145,26 @@ def classify_openai_v1(config: dict[str, Any], account: dict[str, Any], mail: Ma
         model=model,
         messages=[{"role": "user", "content": build_prompt(config, account, mail)}],
         temperature=0,
+        stream=provider.stream,
     )
-    content = response.choices[0].message.content
-    if isinstance(content, list):
-        content = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
-    raw = (content or "").strip()
-    return normalize_decision(parse_json_object(raw), account)
+    if provider.stream:
+        raw = consume_openai_v1_stream(response)
+    else:
+        content = response.choices[0].message.content
+        if isinstance(content, list):
+            content = "".join(
+                part.get("text", "") if isinstance(part, dict) else str(part)
+                for part in content
+            )
+        raw = (content or "").strip()
+
+    if not raw:
+        raise ValueError("Classifier returned no JSON content.")
+    try:
+        payload = parse_json_object(raw)
+    finally:
+        raw = ""
+    return normalize_decision(payload, account)
 
 
 def classify_rules(account: dict[str, Any], mail: MailSummary) -> Decision:

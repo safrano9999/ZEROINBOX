@@ -102,7 +102,13 @@ OPENAI_V1_PROVIDER=
 OPENAI_V1_KEY=...
 OPENAI_V1_URL=https://forky.tailb13f39.ts.net
 OPENAI_V1_PORT=888
+OPENAI_V1_STREAM=false
 ```
+
+Set `OPENAI_V1_STREAM=true` for providers such as ChatGPT subscription OAuth
+that only produce a usable completion through streaming. ZEROINBOX consumes
+only text deltas in memory, never logs or persists raw chunks, and accepts only
+the exact classification JSON fields.
 
 Known providers are read from `provider.conf`; currently `gmail` and `icloud`.
 Provider names are case-insensitive. A custom provider entered in
