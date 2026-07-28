@@ -5,8 +5,12 @@ from typing import Any
 
 from .config import resolve_model
 from .models import Decision, Destination, MailSummary
-from openai_v1_stream import openai_v1_stream_buffer
-from python_header import openai_v1_client, openai_v1_first_provider, openai_v1_provider_for_model
+from openai_v1 import (
+    openai_v1_client,
+    openai_v1_first_provider,
+    openai_v1_provider_for_model,
+    openai_v1_stream_buffer,
+)
 
 _DECISION_KEYS = {"destination", "confidence", "summary", "reason"}
 

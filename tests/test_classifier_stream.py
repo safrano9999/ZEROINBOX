@@ -2,7 +2,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from openai_v1_stream import openai_v1_stream_buffer
+from openai_v1 import openai_v1_stream_buffer
 from zeroinbox.classifier import classify_openai_v1, parse_json_object
 from zeroinbox.models import MailSummary
 
