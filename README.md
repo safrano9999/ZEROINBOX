@@ -1,42 +1,212 @@
 # ZEROINBOX
 
-[![OpenClaw plugin](https://github.com/safrano9999/ZEROINBOX/actions/workflows/openclaw-plugin-release.yml/badge.svg)](https://github.com/safrano9999/ZEROINBOX/actions/workflows/openclaw-plugin-release.yml)
+[![OpenClaw plugin build](https://github.com/safrano9999/ZEROINBOX/actions/workflows/openclaw-plugin-release.yml/badge.svg)](https://github.com/safrano9999/ZEROINBOX/actions/workflows/openclaw-plugin-release.yml)
 
-**Download (always the latest CI build):**
-[`zeroinbox-latest.zip`](https://github.com/safrano9999/ZEROINBOX/releases/download/latest/zeroinbox-latest.zip)
-· [`.sha256`](https://github.com/safrano9999/ZEROINBOX/releases/download/latest/zeroinbox-latest.zip.sha256)
+> **Type:** standalone Python IMAP sorter with an optional OpenClaw adapter.
+> **OpenClaw:** supported through the release ZIP.
+> **Hermes:** no Hermes adapter is included.
 
-OpenClaw-ready IMAP mail sorter with OpenAI-v1 classification and PDF reports.
+ZEROINBOX reads one or more IMAP inboxes, classifies matching messages through
+an OpenAI-v1-compatible endpoint, optionally moves them into an explicit folder
+allowlist, and produces JSONL and PDF reports.
 
-Runtime code lives in the repository root. The OpenClaw plugin starts the
-Python CLI directly; OpenClaw does not classify mails and does not touch the
-OpenAI-v1 decision logic.
+The Python application owns all IMAP and classification behavior. OpenClaw is
+only an adapter around that application; it does not classify messages itself.
 
-## What It Does
+## Releases
 
-- reads IMAP mail from the configured account
-- checks all configured accounts/mailboxes in the normal sort flow
-- classifies matching messages with the official OpenAI Python client
-- moves messages into configured folders when run with `--commit`
-- writes JSONL decisions to `logs/`
-- writes a PDF report to `REPORTS/` on bare metal
-- writes reports to `REPORTS/` relative to the ZEROINBOX directory
+This is a private repository. An authorized GitHub login is required to view
+the release page or download its assets.
 
-The PDF keeps the known ZEROINBOX layout: colored overview first, then one page
-per processed email.
+- [Latest release](https://github.com/safrano9999/ZEROINBOX/releases/latest)
+- [OpenClaw plugin ZIP: `zeroinbox-latest.zip`](https://github.com/safrano9999/ZEROINBOX/releases/download/latest/zeroinbox-latest.zip)
+  · [SHA-256](https://github.com/safrano9999/ZEROINBOX/releases/download/latest/zeroinbox-latest.zip.sha256)
 
-## OpenClaw
+The ZIP is an OpenClaw plugin package, not a generic bare-metal installer.
+Use a source checkout for bare-metal operation. Generated ZIP files are release
+assets and are not stored in the repository.
 
-The plugin registers:
+Download and verify the current plugin:
 
-- tool: `zeroinbox_run`
-- slash command: `/zeroinbox`
-- webhook: `POST /plugins/zeroinbox/run`
-
-Enter this to trigger webhook from inside container:
 ```bash
-curl -sS -X POST -H "Authorization: Bearer ${OPENCLAW_GATEWAY_TOKEN}" "http://127.0.0.1:${OPENCLAW_GATEWAY_PORT:-18789}/plugins/zeroinbox/run"
+gh auth login
+gh release download latest --repo safrano9999/ZEROINBOX \
+  --pattern 'zeroinbox-latest.zip*' --clobber
+sha256sum -c zeroinbox-latest.zip.sha256
 ```
+
+## Features
+
+- IMAP over TLS with built-in defaults for Gmail and iCloud
+- Case-insensitive custom IMAP providers
+- Up to 50 independently configured accounts
+- Sequential multi-account processing and one combined PDF report
+- OpenAI-v1 classification with configurable model, endpoint, key, and
+  streaming mode
+- Conservative fixed destination allowlist with an `uncertain` fallback
+- Non-LLM rules classifier for mechanics tests
+- Dry-run and committed move modes
+- JSON output for automation and human-readable CLI output
+- OpenClaw command, tool, authenticated webhook, and optional outbound delivery
+
+## Deployment modes
+
+| Mode | Status | What runs |
+| --- | --- | --- |
+| Bare metal | Supported | The Python CLI runs directly from a source checkout. |
+| OpenClaw | Optional, supported | The release ZIP registers `/zeroinbox`, `zeroinbox_run`, and an authenticated webhook. |
+| Hermes | Not included | This repository has no Hermes plugin or Hermes tool registration. |
+
+## Bare-metal installation
+
+Requirements:
+
+- Python 3 with `venv`
+- IMAP credentials or provider-specific app passwords
+- an OpenAI-v1-compatible endpoint for normal classification
+
+```bash
+git clone https://github.com/safrano9999/ZEROINBOX.git
+cd ZEROINBOX
+scripts/setup-python.sh
+./ZEROINBOX_init.sh
+```
+
+The interactive initializer writes account secrets to the ignored `.env` file
+with mode `0600`. Run it again, or pass `--new`, to add the next account slot.
+
+Start with a non-mutating check:
+
+```bash
+.venv/bin/python -m zeroinbox.cli config
+.venv/bin/python -m zeroinbox.cli status
+.venv/bin/python -m zeroinbox.cli folders
+.venv/bin/python -m zeroinbox.cli sort --dry-run --limit 10
+```
+
+Move messages only after the dry-run output and target folders are correct:
+
+```bash
+.venv/bin/python -m zeroinbox.cli sort --commit
+```
+
+Without `--account`, a sort processes every configured account in order. Use
+`--account gmail`, for example, to select one account.
+
+## Configuration
+
+Runtime values are loaded from process environment variables and the ignored
+`.env` and `config.conf` files. Static built-in provider defaults live in
+`provider.conf`.
+
+### Mail accounts
+
+The first account has no suffix:
+
+```env
+ZEROINBOX_PROVIDER=gmail
+ZEROINBOX_EMAIL=person@example.com
+ZEROINBOX_APP_PASSWORD=replace-with-an-app-password
+ZEROINBOX_ONLY_UNSEEN=1
+```
+
+Additional accounts use `_2`, `_3`, and so on:
+
+```env
+ZEROINBOX_PROVIDER_2=icloud
+ZEROINBOX_EMAIL_2=person@icloud.com
+ZEROINBOX_APP_PASSWORD_2=replace-with-an-app-password
+ZEROINBOX_ONLY_UNSEEN_2=1
+```
+
+For a provider not present in `provider.conf`, define its connection settings:
+
+```env
+ZEROINBOX_PROVIDER_3=work
+ZEROINBOX_PROVIDER_WORK_URL=outlook.office365.com
+ZEROINBOX_PROVIDER_WORK_PORT=993
+ZEROINBOX_PROVIDER_WORK_INBOX=INBOX
+ZEROINBOX_PROVIDER_WORK_ARCHIVE_PREFIX=ZEROINBOX/Archiv
+ZEROINBOX_EMAIL_3=person@example.com
+ZEROINBOX_APP_PASSWORD_3=replace-with-an-app-password
+```
+
+Provider names are case-insensitive. The initializer can create these entries
+interactively.
+
+### OpenAI-v1 classification
+
+```env
+ZEROINBOX_OPENAI_V1_DEFAULT_LLM=luna
+OPENAI_V1_PROVIDER=litellm
+OPENAI_V1_URL=http://127.0.0.1
+OPENAI_V1_PORT=4000
+OPENAI_V1_KEY=replace-with-a-bearer-key
+OPENAI_V1_STREAM=false
+```
+
+If the URL has no path, ZEROINBOX adds `/v1`. Set `OPENAI_V1_STREAM=true` only
+for endpoints that require streamed completions. Streamed text is accumulated
+in memory, parsed as the same strict four-field JSON object, then the mutable
+buffer is cleared and the stream is closed.
+
+The classifier accepts exactly these fields:
+
+```json
+{
+  "destination": "uncertain",
+  "confidence": 0.5,
+  "summary": "Short summary",
+  "reason": "Classification reason"
+}
+```
+
+Unknown fields, duplicate fields, wrappers, or unknown destinations are
+rejected or normalized to the conservative fallback.
+
+For a local mechanics test that sends no message content to an LLM:
+
+```bash
+.venv/bin/python -m zeroinbox.cli classify-test \
+  --classifier rules \
+  --subject 'Invoice 123' \
+  --from billing@example.com
+```
+
+### Destination folders
+
+The built-in destinations include communication, newsletters, system messages,
+payments, terms, welcome mail, disposable mail, and uncertain mail. Their
+actual mailbox paths are derived from each provider's archive prefix.
+
+Create the configured folders before the first committed sort:
+
+```bash
+scripts/gmail-init-labels
+```
+
+The default path uses IMAP and the account password. Gmail API credentials are
+needed only when `ZEROINBOX_LABEL_METHOD=gmail-api` is selected.
+
+## OpenClaw plugin
+
+Install the verified release archive:
+
+```bash
+openclaw plugins install ./zeroinbox-latest.zip \
+  --force --dangerously-force-unsafe-install
+openclaw gateway restart
+```
+
+The plugin creates its own `.venv` on first use unless `autoSetupPython` is
+disabled. Mail and OpenAI-v1 variables must be available to the gateway process
+or in a `.env` file in the installed plugin directory.
+
+Registered interfaces:
+
+- slash command: `/zeroinbox`
+- tool: `zeroinbox_run`
+- gateway-auth route: `POST /plugins/zeroinbox/run`
 
 Examples:
 
@@ -48,135 +218,111 @@ Examples:
 /zeroinbox sort --commit
 ```
 
-By default `/zeroinbox` and the webhook run:
+An empty command and the default webhook both run `sort --commit`. Change
+`defaultArgs` or `webhook.args` in the OpenClaw plugin configuration if a
+different default is required.
 
-```text
-sort --commit
-```
-
-Sort responses include `MEDIA:<pdf path>` when a PDF was generated, so Telegram
-receives the report through OpenClaw.
-Accounts are checked one after another. Empty accounts produce one green-check
-line. Results from every non-empty account are appended to one PDF in account
-order; its overview comes first and every processed email gets its own page.
-Mixed runs return both the green-check text and the PDF.
-
-On this host the OpenClaw cron jobs run it at `10:00` and `20:00`
-(`Europe/Vienna`).
-
-## Config
-
-Versioned provider defaults:
-
-```text
-provider.conf
-```
-
-Local account/runtime values belong in the ignored dotenv file:
-
-```text
-.env
-```
-
-Accounts are added by the init script. It writes provider, address, password
-and custom provider connection values to `.env`; running it again appends the
-next slot (`_2`, `_3`, ...).
+Webhook example:
 
 ```bash
-./ZEROINBOX_init.sh
+curl -fsS -X POST \
+  -H "Authorization: Bearer ${OPENCLAW_GATEWAY_TOKEN}" \
+  "http://127.0.0.1:${OPENCLAW_GATEWAY_PORT:-18789}/plugins/zeroinbox/run"
 ```
 
-Single Gmail account after init:
+The optional `delivery` plugin configuration can send the result and PDF
+through an OpenClaw outbound channel:
 
-```env
-ZEROINBOX_PROVIDER=gmail
-ZEROINBOX_EMAIL=dummy@example.com
-ZEROINBOX_APP_PASSWORD=xxxxxxxxxxxxxxxx
+```json
+{
+  "plugins": {
+    "entries": {
+      "zeroinbox": {
+        "enabled": true,
+        "config": {
+          "defaultArgs": "sort --commit",
+          "webhook": {
+            "enabled": true,
+            "path": "/plugins/zeroinbox/run",
+            "args": "sort --commit"
+          },
+          "delivery": {
+            "channel": "telegram",
+            "target": "replace-with-chat-id"
+          }
+        }
+      }
+    }
+  }
+}
 ```
 
-OpenAI-v1 classification is called by ZEROINBOX itself. For a local compatible proxy:
+Scheduling is owned by the host or OpenClaw cron. ZEROINBOX does not contain an
+internal scheduler.
 
-```env
-ZEROINBOX_OPENAI_V1_DEFAULT_LLM=gemini/gemini-flash-lite-latest
-OPENAI_V1_PROVIDER=
-OPENAI_V1_KEY=...
-OPENAI_V1_URL=https://forky.tailb13f39.ts.net
-OPENAI_V1_PORT=888
-OPENAI_V1_STREAM=false
-```
-
-Set `OPENAI_V1_STREAM=true` for providers such as ChatGPT subscription OAuth
-that only produce a usable completion through streaming. ZEROINBOX consumes
-only text deltas in memory, never logs or persists raw chunks, and accepts only
-the exact classification JSON fields.
-
-Known providers are read from `provider.conf`; currently `gmail` and `icloud`.
-Provider names are case-insensitive. A custom provider entered in
-`ZEROINBOX_init.sh` writes the matching connection values to `.env`:
-
-```env
-ZEROINBOX_PROVIDER_2=ms
-ZEROINBOX_PROVIDER_MS_URL=outlook.office365.com
-ZEROINBOX_PROVIDER_MS_PORT=993
-ZEROINBOX_EMAIL_2=dummy@outlook.com
-ZEROINBOX_APP_PASSWORD_2=xxxxxxxxxxxxxxxx
-```
-
-Without `--account`, `sort` checks every configured account. With
-`--account gmail`, it checks only that provider account.
-
-## Account Folders
-
-Create the configured target folders before the first committed sort:
+For linked plugin development:
 
 ```bash
-cd /home/openclaw/safcontainer/ZEROINBOX
-scripts/gmail-init-labels
-```
-
-Default folder creation uses IMAP and the app password. Google Cloud OAuth JSON
-is only needed if `ZEROINBOX_LABEL_METHOD=gmail-api` is set for Gmail.
-
-In the `safrano9999-openclaw` container this label init is run once at container
-startup for all configured accounts.
-
-## Local Check
-
-```bash
-cd /home/openclaw/safcontainer/ZEROINBOX
-scripts/check.sh
-```
-
-Direct CLI run for debugging:
-
-```bash
-scripts/setup-python.sh
-set -a; . ./.env; set +a
-.venv/bin/python -m zeroinbox.cli sort --dry-run
-```
-
-## Install
-
-Install or update to the latest CI build — one flow, always tracks `latest`:
-
-```bash
-gh release download latest --repo safrano9999/ZEROINBOX \
-  --pattern 'zeroinbox-latest.zip*' --clobber
-sha256sum -c zeroinbox-latest.zip.sha256
-openclaw plugins install ./zeroinbox-latest.zip --force --dangerously-force-unsafe-install
-openclaw gateway restart
-```
-
-The `latest` release always points at the newest CI build, so this never needs a
-version bump. The plugin creates `.venv` on first run unless `autoSetupPython`
-is disabled.
-
-Local dev (clone + link, runs in place):
-
-```bash
-git clone https://github.com/safrano9999/ZEROINBOX.git
-cd ZEROINBOX
 openclaw plugins install --link "$(pwd)" \
   --dangerously-force-unsafe-install
 openclaw gateway restart
 ```
+
+## Storage and backups
+
+ZEROINBOX keeps no local message database. Messages remain on the IMAP server
+and committed runs move them between server-side mailboxes.
+
+Local runtime data:
+
+- `.env` and `config.conf`: credentials and account behavior
+- `logs/`: JSONL decisions for processed messages
+- `REPORTS/`: combined PDF reports
+- `.venv/`: reproducible local Python environment, safe to recreate
+
+Container configuration can map `logs/` and `REPORTS/` to named volumes through
+the switches in `config.conf_example`. Back up the configuration and whichever
+report/log history you intend to retain.
+
+## Security
+
+- Use provider-specific app passwords instead of primary account passwords.
+- Protect `.env`, logs, and reports; they contain sensitive account or message
+  metadata.
+- A normal LLM classification sends sender, date, subject, and up to 4,000
+  characters of message body to the configured OpenAI-v1 endpoint.
+- Test with `--dry-run`; `--commit` performs real IMAP moves.
+- Keep the OpenClaw webhook behind gateway authentication.
+- Use a private or TLS-protected endpoint for any remote OpenAI-v1 service.
+- Raw streamed completion chunks and full message bodies are not written to the
+  decision log by the classifier.
+
+## Operations
+
+Useful diagnostics:
+
+```bash
+.venv/bin/python -m zeroinbox.cli --json config
+.venv/bin/python -m zeroinbox.cli --json status
+.venv/bin/python -m zeroinbox.cli --json folders
+.venv/bin/python -m zeroinbox.cli sort --dry-run --limit 1
+```
+
+Each non-empty multi-account run produces one report: an overview followed by
+one page per processed message, in account order. OpenClaw responses expose the
+PDF as media when one was generated.
+
+## Development
+
+The repository contains the standalone Python package and the OpenClaw adapter
+in the same source tree.
+
+```bash
+scripts/setup-python.sh
+scripts/check.sh
+.venv/bin/python -m unittest discover -s tests
+```
+
+`scripts/check.sh` requires Node.js for `index.js` syntax checking and Python
+for bytecode compilation. Release ZIP construction is performed by the
+repository's GitHub Actions workflow; generated archives are never committed.
