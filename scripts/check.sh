@@ -5,7 +5,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 node --check "$PLUGIN_ROOT/index.js"
+test -f "$PLUGIN_ROOT/openai_v1_stream.py"
 PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/zeroinbox-pycache" python3 -m py_compile \
+  "$PLUGIN_ROOT/openai_v1_stream.py" \
   "$PLUGIN_ROOT/zeroinbox/__init__.py" \
   "$PLUGIN_ROOT/zeroinbox/classifier.py" \
   "$PLUGIN_ROOT/zeroinbox/cli.py" \
