@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+# Source of truth: SCRIPTS/githubactions. Generated copies are overwritten.
 set -euo pipefail
 
-repo="$(basename "$PWD")"
-zip_name="${ZIP_NAME:-$(printf '%s' "$repo" | tr '[:upper:]' '[:lower:]')-latest.zip}"
+repo_name="$(basename "$PWD")"
+repo="${repo_name^^}"
+zip_name="${ZIP_NAME:-$(printf '%s' "$repo_name" | tr '[:upper:]' '[:lower:]')-latest.zip}"
 archive_list="${ARCHIVE_LIST:-/tmp/openclaw-plugin-archive-files.txt}"
 dev_only_re='(^|/)tag\.sh$'
 candidate_list="$(mktemp)"

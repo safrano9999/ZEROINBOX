@@ -9,3 +9,5 @@ logs/
 state/
 REPORTS/
 .tag
+/zeroinbox-latest.zip
+/zeroinbox-latest.zip.sha256
