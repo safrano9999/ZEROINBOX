@@ -142,13 +142,14 @@ OPENAI_V1_PROVIDER=litellm
 OPENAI_V1_URL=http://127.0.0.1
 OPENAI_V1_PORT=4000
 OPENAI_V1_KEY=replace-with-a-bearer-key
-OPENAI_V1_STREAM=false
+OPENAI_V1_STREAM=true
 ```
 
-If the URL has no path, ZEROINBOX adds `/v1`. Set `OPENAI_V1_STREAM=true` only
-for endpoints that require streamed completions. Streamed text is accumulated
-in memory, parsed as the same strict four-field JSON object, then the mutable
-buffer is cleared and the stream is closed.
+If the URL has no path, ZEROINBOX adds `/v1`. Keep `OPENAI_V1_STREAM=true` for
+endpoints such as `luna` through LiteLLM that require streamed completions; set
+it to `false` only for an endpoint that does not support streaming. Streamed
+text is accumulated in memory, parsed as the same strict four-field JSON
+object, then the mutable buffer is cleared and the stream is closed.
 
 The classifier accepts exactly these fields:
 
