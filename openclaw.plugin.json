@@ -1,7 +1,7 @@
 {
   "id": "zeroinbox",
   "name": "ZEROINBOX",
-  "description": "Standalone IMAP and OpenAI-v1 mail sorter with a /zeroinbox command.",
+  "description": "Standalone IMAP and OpenAI-v1 mail sorter with /zeroinbox and /mails commands.",
   "skills": [
     "skills"
   ],

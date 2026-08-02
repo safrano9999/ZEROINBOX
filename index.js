@@ -360,7 +360,17 @@ export default definePluginEntry({
       name: "zeroinbox",
       description: "Run ZEROINBOX mail sorting or status commands.",
       acceptsArgs: true,
-      requireAuth: true,
+      requireAuth: false,
+      handler: async (ctx) => {
+        const raw = readString(ctx?.args) ?? "";
+        return runZeroinboxCommand(api, raw);
+      },
+    });
+    api.registerCommand({
+      name: "mails",
+      description: "Alias for /zeroinbox.",
+      acceptsArgs: true,
+      requireAuth: false,
       handler: async (ctx) => {
         const raw = readString(ctx?.args) ?? "";
         return runZeroinboxCommand(api, raw);
