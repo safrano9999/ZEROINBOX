@@ -2,8 +2,7 @@
 """ZEROINBOX account init.
 
 This script is intentionally only about account config:
-- provider/mail address/password go to .env
-- account behavior goes to config.conf
+- provider/mail address/password/account behavior go to .env
 - custom provider connection values also go to .env
 - folder/label creation is handled separately by scripts/gmail-init-labels
 """
@@ -18,7 +17,6 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
 ENV_PATH = ROOT_DIR / ".env"
-CONFIG_PATH = ROOT_DIR / "config.conf"
 
 
 def ask(question: str, default: str = "") -> str:
@@ -195,6 +193,7 @@ def add_account() -> None:
             provider_key(suffix): provider,
             env_key("EMAIL", suffix): email,
             env_key("APP_PASSWORD", suffix): password,
+            env_key("ONLY_UNSEEN", suffix): only_unseen,
         }
     )
     upsert_kv(
@@ -202,10 +201,10 @@ def add_account() -> None:
         env_updates,
         0o600,
     )
-    only_unseen_key = env_key("ONLY_UNSEEN", suffix)
-    upsert_kv(CONFIG_PATH, {only_unseen_key: only_unseen})
-    print(f"Wrote {provider_key(suffix)}, {env_key('EMAIL', suffix)} and {env_key('APP_PASSWORD', suffix)} to {ENV_PATH}.")
-    print(f"Wrote {only_unseen_key} to {CONFIG_PATH}.")
+    print(
+        f"Wrote {provider_key(suffix)}, {env_key('EMAIL', suffix)}, "
+        f"{env_key('APP_PASSWORD', suffix)} and {env_key('ONLY_UNSEEN', suffix)} to {ENV_PATH}."
+    )
 
 
 def main() -> int:

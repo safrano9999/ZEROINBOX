@@ -72,8 +72,9 @@ scripts/setup-python.sh
 ./ZEROINBOX_init.sh
 ```
 
-The interactive initializer writes account secrets to the ignored `.env` file
-with mode `0600`. Run it again, or pass `--new`, to add the next account slot.
+The interactive initializer writes account credentials and settings to the
+ignored `.env` file with mode `0600`. Run it again, or pass `--new`, to add the
+next account slot.
 
 Start with a non-mutating check:
 
@@ -95,9 +96,8 @@ Without `--account`, a sort processes every configured account in order. Use
 
 ## Configuration
 
-Runtime values are loaded from process environment variables and the ignored
-`.env` and `config.conf` files. Static built-in provider defaults live in
-`provider.conf`.
+ZEROINBOX runtime values are loaded from process environment variables and the
+ignored `.env` file. Static built-in provider defaults live in `provider.conf`.
 
 ### Mail accounts
 
@@ -276,13 +276,13 @@ and committed runs move them between server-side mailboxes.
 
 Local runtime data:
 
-- `.env` and `config.conf`: credentials and account behavior
+- `.env`: credentials, account behavior, and persistence switches
 - `logs/`: JSONL decisions for processed messages
 - `REPORTS/`: combined PDF reports
 - `.venv/`: reproducible local Python environment, safe to recreate
 
 Container configuration can map `logs/` and `REPORTS/` to named volumes through
-the switches in `config.conf_example`. Back up the configuration and whichever
+the switches in `env.example`. Back up the configuration and whichever
 report/log history you intend to retain.
 
 ## Security
