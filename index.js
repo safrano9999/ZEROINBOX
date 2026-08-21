@@ -10,6 +10,13 @@ const requirementsPath = path.join(pluginRoot, "requirements.txt");
 const venvDir = path.join(pluginRoot, ".venv");
 const venvPython = path.join(venvDir, "bin", "python");
 const defaultWebhookPath = "/plugins/zeroinbox/run";
+const commandReportDir = path.join(
+  process.env.HOME || "/root",
+  ".openclaw",
+  "workspace",
+  "ZEROINBOX",
+  "REPORTS",
+);
 
 const configSchema = {
   type: "object",
@@ -216,10 +223,18 @@ async function resolvePython(ctx, signal) {
 async function runZeroinbox(ctx, params, signal) {
   const cfg = readPluginConfig(ctx);
   const raw = readString(params.raw) ?? readString(cfg.defaultArgs) ?? "sort --commit";
+  const reportDir = readString(params.reportDir);
   const python = await resolvePython(ctx, signal);
   const result = await runProcess(
     python,
-    ["-m", "zeroinbox.cli", "--json", "--raw", raw],
+    [
+      "-m",
+      "zeroinbox.cli",
+      "--json",
+      ...(reportDir ? ["--report-dir", reportDir] : []),
+      "--raw",
+      raw,
+    ],
     {
       cwd: pluginRoot,
       signal,
@@ -301,7 +316,7 @@ async function deliverIfConfigured(api, payload) {
 }
 
 async function runZeroinboxCommand(api, raw) {
-  const payload = await runZeroinbox(api, { raw });
+  const payload = await runZeroinbox(api, { raw, reportDir: commandReportDir });
   const reportPath = readString(payload.reportPath);
   if (reportPath) {
     return {
